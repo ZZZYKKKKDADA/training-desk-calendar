@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using TrainingDeskCalendar.App.Desktop;
 using TrainingDeskCalendar.App.Diagnostics;
+using TrainingDeskCalendar.App.Windowing;
 
 namespace TrainingDeskCalendar.App;
 
@@ -16,6 +17,7 @@ public partial class MainWindow : Window
         new(new Win32DesktopWindowApi());
     private readonly DispatcherTimer desktopWatchdog;
     private readonly uint taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
+    private WindowPlacementCoordinator? placementCoordinator;
     private nint windowHandle;
 
     public MainWindow()
@@ -27,7 +29,8 @@ public partial class MainWindow : Window
         {
             Interval = TimeSpan.FromSeconds(5)
         };
-        desktopWatchdog.Tick += (_, _) => AttachToDesktop();
+        desktopWatchdog.Tick += OnDesktopWatchdogTick;
+        LocationChanged += (_, _) => placementCoordinator?.TrackCurrentMonitor();
         SourceInitialized += OnSourceInitialized;
         ContentRendered += OnContentRendered;
         Closed += (_, _) => desktopWatchdog.Stop();
@@ -39,6 +42,11 @@ public partial class MainWindow : Window
     {
         var helper = new WindowInteropHelper(this);
         windowHandle = helper.Handle;
+        placementCoordinator = new WindowPlacementCoordinator(
+            this,
+            windowHandle,
+            new Win32MonitorWorkAreaReader(),
+            new WindowPlacementService());
         HwndSource.FromHwnd(windowHandle)?.AddHook(WindowMessageHook);
         AttachToDesktop();
         desktopWatchdog.Start();
@@ -83,6 +91,12 @@ public partial class MainWindow : Window
         DesktopStatusText.Text = result.Status == DesktopAttachStatus.Attached
             ? "Desktop host: attached"
             : $"Desktop host: fallback · {result.FailureReason}";
+    }
+
+    private void OnDesktopWatchdogTick(object? sender, EventArgs e)
+    {
+        AttachToDesktop();
+        placementCoordinator?.EnsureVisible();
     }
 
     private void OnHeaderMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
