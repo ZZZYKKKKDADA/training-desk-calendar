@@ -19,6 +19,7 @@ internal sealed class DataTransferService
     private readonly SettingsStore settingsStore;
     private readonly AppDataPaths paths;
     private readonly TimeProvider timeProvider;
+    private int backupSequence;
 
     public DataTransferService(
         ITrainingPlanStore planStore,
@@ -63,7 +64,7 @@ internal sealed class DataTransferService
             timeProvider.GetUtcNow().ToUniversalTime(),
             originalPlans,
             originalSettings);
-        await CreateRecoveryBackupAsync(original, cancellationToken);
+        string recoveryPath = await CreateRecoveryBackupAsync(original, cancellationToken);
 
         try
         {
@@ -74,8 +75,11 @@ internal sealed class DataTransferService
         {
             try
             {
-                await planStore.ReplaceAllAsync(originalPlans, CancellationToken.None);
-                await settingsStore.SaveAsync(originalSettings, CancellationToken.None);
+                SnapshotFormat recovery = await ReadSnapshotAsync(
+                    recoveryPath,
+                    CancellationToken.None);
+                await planStore.ReplaceAllAsync(recovery.Plans, CancellationToken.None);
+                await settingsStore.SaveAsync(recovery.Settings, CancellationToken.None);
             }
             catch (Exception rollbackException)
             {
@@ -136,7 +140,7 @@ internal sealed class DataTransferService
         return snapshot;
     }
 
-    private async Task CreateRecoveryBackupAsync(
+    private async Task<string> CreateRecoveryBackupAsync(
         SnapshotFormat snapshot,
         CancellationToken cancellationToken)
     {
@@ -146,10 +150,11 @@ internal sealed class DataTransferService
             .ToString("yyyyMMdd'T'HHmmssfff'Z'", CultureInfo.InvariantCulture);
         string backupPath = Path.Combine(
             paths.BackupDirectory,
-            $"backup-{timestamp}-{Guid.NewGuid():N}.json");
+            $"backup-{timestamp}-{Interlocked.Increment(ref backupSequence):D8}-{Guid.NewGuid():N}.json");
 
         await WriteSnapshotAsync(backupPath, snapshot, cancellationToken);
         DeleteOldRecoveryBackups();
+        return backupPath;
     }
 
     private static async Task WriteSnapshotAsync(
