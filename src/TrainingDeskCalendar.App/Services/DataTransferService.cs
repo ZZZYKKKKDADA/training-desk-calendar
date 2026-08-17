@@ -238,9 +238,8 @@ internal sealed class DataTransferService
                         CultureInfo.InvariantCulture,
                         DateTimeStyles.None,
                         out DateOnly date) ||
-                    !DateTimeOffset.TryParseExact(
+                    !DateTimeOffset.TryParse(
                         updatedText,
-                        "O",
                         CultureInfo.InvariantCulture,
                         DateTimeStyles.RoundtripKind,
                         out DateTimeOffset updatedAtUtc) ||
