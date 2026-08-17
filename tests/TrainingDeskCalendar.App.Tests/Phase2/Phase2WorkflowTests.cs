@@ -138,6 +138,58 @@ public sealed class Phase2WorkflowTests : IDisposable
         Assert.Equal("导入后的计划", target.Calendar.Days[2].Text);
     }
 
+    [Fact]
+    public async Task Composition_GatesRangeNavigationLatestDraftAndAppearancePersistence()
+    {
+        AppDataPaths paths = AppDataPaths.ForRoot(root);
+        await using (AppComposition first = await AppComposition.CreateAsync(
+                         paths,
+                         new DateOnly(2026, 8, 19),
+                         new FixedTimeProvider(Now),
+                         new FakeStartupRegistration(true)))
+        {
+            await first.Calendar.LoadAsync();
+            Assert.Equal(new DateOnly(2026, 8, 17), first.Calendar.Range.Start);
+            Assert.Equal(14, first.Calendar.Days.Count);
+
+            DateOnly initialStart = first.Calendar.Range.Start;
+            await first.Calendar.NextAsync();
+            Assert.Equal(initialStart.AddDays(14), first.Calendar.Range.Start);
+            await first.Calendar.PreviousAsync();
+            Assert.Equal(initialStart, first.Calendar.Range.Start);
+
+            DayCardViewModel card = first.Calendar.Days[4];
+            first.Calendar.BeginEdit(card);
+            card.Text = "第一版草稿";
+            card.Text = "最终训练计划";
+            card.SelectColor(TaskColorId.Blue);
+            await first.Calendar.FlushAsync();
+
+            await first.SaveSettingsAsync(first.Settings with
+            {
+                Theme = AppTheme.Dark,
+                Opacity = 0.7,
+                IsLocked = true
+            });
+        }
+
+        await using AppComposition second = await AppComposition.CreateAsync(
+            paths,
+            new DateOnly(2026, 8, 19),
+            new FixedTimeProvider(Now),
+            new FakeStartupRegistration(true));
+        await second.Calendar.LoadAsync();
+
+        Assert.Equal("最终训练计划", second.Calendar.Days[4].Text);
+        Assert.Equal(TaskColorId.Blue, second.Calendar.Days[4].SelectedColor);
+        Assert.Equal(AppTheme.Dark, second.Settings.Theme);
+        Assert.Equal(0.7, second.Settings.Opacity);
+        Assert.True(second.Settings.IsLocked);
+        await second.Calendar.NextAsync();
+        await second.Calendar.GoToTodayAsync();
+        Assert.Equal(new DateOnly(2026, 8, 17), second.Calendar.Range.Start);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(root))
