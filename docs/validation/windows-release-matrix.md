@@ -14,8 +14,8 @@
 - 安装器验证：[installer-results.md](installer-results.md)
 - 发布性能验证：[release-performance-results.md](release-performance-results.md)
 - 数据恢复验证：[data-recovery-results.md](data-recovery-results.md)
-- 当前机器安装器 SHA-256：`e518cc669f87e7a070487d2619e26ffcfa61991ccfbb029e5e37c188eb6a4a03`
-- 当前机器性能结果：最大启动 1370.3ms、最大工作集 186.7MiB、最大空闲 CPU 0.051%、最大自动保存 284.8ms。
+- 当前机器安装器 SHA-256：`65c4e32aae47a25d6443a3d4bc3f67cc3c8a5e56c4d134e39b075513148015ff`
+- 当前机器性能结果：最大启动 1337.3ms、最大工作集 186.4MiB、最大空闲 CPU 0.053%、最大自动保存 285.2ms；安装目录 131.88MiB。
 
 ## 未决手工清单
 
