@@ -1,4 +1,6 @@
 using System.Windows;
+using TrainingDeskCalendar.App.Persistence;
+using TrainingDeskCalendar.App.Services;
 
 namespace TrainingDeskCalendar.App;
 
@@ -6,8 +8,9 @@ public partial class App : Application
 {
     internal static string? ReadyFilePath { get; private set; }
     internal static TimeSpan? ExitAfter { get; private set; }
+    private AppComposition? composition;
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -25,8 +28,33 @@ public partial class App : Application
             }
         }
 
-        var window = new MainWindow();
-        MainWindow = window;
-        window.Show();
+        try
+        {
+            composition = await AppComposition.CreateAsync(
+                AppDataPaths.ForCurrentUser(),
+                DateOnly.FromDateTime(DateTime.Today));
+            var window = new MainWindow(composition);
+            MainWindow = window;
+            window.Show();
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(
+                $"训练桌历无法启动：{exception.Message}",
+                "训练桌历",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(1);
+        }
+    }
+
+    protected override async void OnExit(ExitEventArgs e)
+    {
+        if (composition is not null)
+        {
+            await composition.DisposeAsync();
+        }
+
+        base.OnExit(e);
     }
 }

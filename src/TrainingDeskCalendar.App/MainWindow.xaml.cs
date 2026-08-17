@@ -1,42 +1,62 @@
-using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Threading;
+using TrainingDeskCalendar.App.Calendar;
+using TrainingDeskCalendar.App.Domain;
 using TrainingDeskCalendar.App.Desktop;
 using TrainingDeskCalendar.App.Diagnostics;
+using TrainingDeskCalendar.App.Services;
 using TrainingDeskCalendar.App.Windowing;
 
 namespace TrainingDeskCalendar.App;
 
 public partial class MainWindow : Window
 {
-    private readonly DesktopHostService desktopHostService =
-        new(new Win32DesktopWindowApi());
+    private readonly AppComposition composition;
+    private readonly DesktopHostService desktopHostService = new(new Win32DesktopWindowApi());
     private readonly DispatcherTimer desktopWatchdog;
     private readonly uint taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
     private WindowPlacementCoordinator? placementCoordinator;
     private nint windowHandle;
 
-    public MainWindow()
+    internal MainWindow(AppComposition composition)
     {
+        this.composition = composition ?? throw new ArgumentNullException(nameof(composition));
         InitializeComponent();
-        Days = CreateDays();
-        DataContext = this;
-        desktopWatchdog = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(5)
-        };
+        DataContext = composition.Calendar;
+        desktopWatchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
         desktopWatchdog.Tick += OnDesktopWatchdogTick;
         LocationChanged += (_, _) => placementCoordinator?.TrackCurrentMonitor();
         SourceInitialized += OnSourceInitialized;
         ContentRendered += OnContentRendered;
-        Closed += (_, _) => desktopWatchdog.Stop();
+        Closed += OnClosed;
     }
 
-    public ObservableCollection<PrototypeDay> Days { get; }
+    private async void OnContentRendered(object? sender, EventArgs e)
+    {
+        try
+        {
+            await composition.Calendar.LoadAsync();
+            PrototypeReadySignal.Write(App.ReadyFilePath);
+            if (App.ExitAfter is TimeSpan delay)
+            {
+                var timer = new DispatcherTimer { Interval = delay };
+                timer.Tick += (_, _) =>
+                {
+                    timer.Stop();
+                    Application.Current.Shutdown();
+                };
+                timer.Start();
+            }
+        }
+        catch (Exception exception)
+        {
+            DesktopStatusText.Text = $"数据加载失败：{exception.Message}";
+        }
+    }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
@@ -52,34 +72,24 @@ public partial class MainWindow : Window
         desktopWatchdog.Start();
     }
 
-    private void OnContentRendered(object? sender, EventArgs e)
+    private async void OnClosed(object? sender, EventArgs e)
     {
-        PrototypeReadySignal.Write(App.ReadyFilePath);
-
-        if (App.ExitAfter is TimeSpan delay)
+        desktopWatchdog.Stop();
+        try
         {
-            var timer = new DispatcherTimer { Interval = delay };
-            timer.Tick += (_, _) =>
-            {
-                timer.Stop();
-                Application.Current.Shutdown();
-            };
-            timer.Start();
+            await composition.DisposeAsync();
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(this, $"退出前保存失败：{exception.Message}", "训练桌历", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
-    private nint WindowMessageHook(
-        nint hwnd,
-        int message,
-        nint wParam,
-        nint lParam,
-        ref bool handled)
+    private nint WindowMessageHook(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
     {
         if ((uint)message == taskbarCreatedMessage)
         {
-            Dispatcher.BeginInvoke(
-                DispatcherPriority.ApplicationIdle,
-                new Action(AttachToDesktop));
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(AttachToDesktop));
         }
 
         return nint.Zero;
@@ -89,8 +99,8 @@ public partial class MainWindow : Window
     {
         DesktopAttachResult result = desktopHostService.Attach(windowHandle);
         DesktopStatusText.Text = result.Status == DesktopAttachStatus.Attached
-            ? "Desktop host: attached"
-            : $"Desktop host: fallback · {result.FailureReason}";
+            ? "桌面层：已连接"
+            : $"桌面层：普通窗口 · {result.FailureReason}";
     }
 
     private void OnDesktopWatchdogTick(object? sender, EventArgs e)
@@ -107,29 +117,49 @@ public partial class MainWindow : Window
         }
     }
 
-    private static ObservableCollection<PrototypeDay> CreateDays()
+    private void OnCardMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        string[] colors =
-        [
-            "#BFE3DA", "#D5DADF", "#C7D8F2", "#BFE3DA", "#D9C7E8", "#F1C2C2", "#D5DADF",
-            "#BFE3DA", "#D5DADF", "#C7D8F2", "#BFE3DA", "#F4D1A6", "#D9C7E8", "#D5DADF"
-        ];
-        string[] plans =
-        [
-            "胸部训练\n卧推 4 × 8", "恢复日\n步行 30 分钟", "慢跑 5 km", "背部训练",
-            "核心训练", "腿部训练", "完全休息", "肩部训练", "泡沫轴", "间歇跑",
-            "硬拉 4 × 6", "灵活性训练", "全身循环", "完全休息"
-        ];
-        string[] weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+        if (e.OriginalSource is TextBox or Button or CheckBox)
+        {
+            return;
+        }
 
-        return new ObservableCollection<PrototypeDay>(
-            Enumerable.Range(0, 14).Select(index => new PrototypeDay(
-                weekdays[index % 7],
-                17 + index,
-                plans[index],
-                (Brush)new BrushConverter().ConvertFromString(colors[index])!,
-                index == 0)));
+        if (sender is FrameworkElement element && element.DataContext is DayCardViewModel card)
+        {
+            composition.Calendar.BeginEdit(card);
+        }
     }
+
+    private async void OnCompletedClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is CheckBox checkBox && checkBox.DataContext is DayCardViewModel card)
+        {
+            await composition.Calendar.SetCompletedAsync(card, checkBox.IsChecked == true);
+        }
+    }
+
+    private void OnColorClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.DataContext is DayCardViewModel card && int.TryParse(button.Tag?.ToString(), out int colorId))
+        {
+            card.SelectColor((TaskColorId)colorId);
+        }
+    }
+
+    private async void OnSaveCardClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && button.DataContext is DayCardViewModel card)
+        {
+            await composition.Calendar.SaveEditAsync(card);
+        }
+    }
+
+    private async void OnPreviousClick(object sender, RoutedEventArgs e) => await composition.Calendar.PreviousAsync();
+    private async void OnTodayClick(object sender, RoutedEventArgs e) => await composition.Calendar.GoToTodayAsync();
+    private async void OnNextClick(object sender, RoutedEventArgs e) => await composition.Calendar.NextAsync();
+
+    private void OnSettingsClick(object sender, RoutedEventArgs e) =>
+        MessageBox.Show(this, "设置窗口将在下一项任务中启用。", "训练桌历", MessageBoxButton.OK, MessageBoxImage.Information);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern uint RegisterWindowMessage(string messageName);
