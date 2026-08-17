@@ -105,12 +105,9 @@ internal sealed class AppComposition : IAsyncDisposable
         var planService = new TrainingPlanService(planStore, clock);
         var autosave = new PlanAutosaveCoordinator(planService);
         var transferService = new DataTransferService(planStore, settingsStore, paths, clock);
-        string? startupExecutable = StartupExecutableResolver.Resolve(
-            Environment.GetEnvironmentVariable(StartupExecutableResolver.LauncherEnvironmentName),
-            Environment.ProcessPath);
         IStartupRegistration resolvedStartupRegistration = startupRegistration ??
-            (startupExecutable is not null
-                ? new StartupRegistration(startupExecutable)
+            (Environment.ProcessPath is string processPath
+                ? new StartupRegistration(processPath)
                 : new DisabledStartupRegistration());
         var updateCheckService = new DeferredUpdateCheckService();
         var calendar = new CalendarViewModel(

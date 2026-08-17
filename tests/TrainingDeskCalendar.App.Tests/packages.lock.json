@@ -149,9 +149,6 @@
         "dependencies": {
           "Microsoft.Data.Sqlite": "[10.0.11, )"
         }
-      },
-      "trainingdeskcalendar.launcher": {
-        "type": "Project"
       }
     }
   }

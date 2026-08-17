@@ -6,6 +6,23 @@ namespace TrainingDeskCalendar.App.Tests.Windows;
 public sealed class TrayServiceTests
 {
     [Fact]
+    public void MessageWindowLayout_IsHiddenTopLevelWindowThatReceivesBroadcasts()
+    {
+        TrayMessageWindowLayout layout = TrayMessageWindowLayout.CreateBroadcastReceiver();
+
+        Assert.Equal(nint.Zero, layout.ParentWindow);
+        Assert.Equal(0, layout.WindowStyle);
+    }
+
+    [Fact]
+    public void ApplicationAssembly_DoesNotReferenceWindowsForms()
+    {
+        Assert.DoesNotContain(
+            typeof(TrayService).Assembly.GetReferencedAssemblies(),
+            assembly => assembly.Name == "System.Windows.Forms");
+    }
+
+    [Fact]
     public void MenuModel_ContainsTheApprovedCommandsAndStateLabels()
     {
         IReadOnlyList<TrayMenuItem> items = TrayMenuModel.Create(
@@ -35,5 +52,26 @@ public sealed class TrayServiceTests
         Assert.Contains(items, item => item.Text == "显示组件");
         Assert.Contains(items, item => item.Text == "解锁组件");
         Assert.Contains(items, item => item.Text == "开启开机自启动");
+    }
+
+    [Fact]
+    public void NativeMenuCommandMap_RoundTripsEachApprovedCommand()
+    {
+        IReadOnlyList<TrayMenuItem> items = TrayMenuModel.Create(
+            new TrayState(IsVisible: true, IsLocked: false, StartWithWindows: true));
+        TrayMenuCommandMap map = TrayMenuCommandMap.Create(items);
+
+        Assert.Equal(items.Count, map.Items.Count);
+        Assert.Equal(items.Count, map.Items.Select(item => item.Id).Distinct().Count());
+        foreach (TrayMenuItem item in items)
+        {
+            TrayNativeMenuItem nativeItem = Assert.Single(
+                map.Items,
+                candidate => candidate.Command == item.Command);
+            Assert.Equal(item.Text, nativeItem.Text);
+            Assert.Equal(item.Command, map.Resolve(nativeItem.Id));
+        }
+
+        Assert.Null(map.Resolve(uint.MaxValue));
     }
 }

@@ -18,7 +18,7 @@
 - Create: `docs/validation/release-performance-results.md`
 
 - [ ] **Step 1: 写脚本契约测试，要求至少 5 次冷启动、ready-file 计时、60 秒空闲 CPU、30 个工作集样本、10 次 250 ms 自动保存延迟、安装包和安装目录大小。**
-- [ ] **Step 2: 实现结构化 JSON 输出并固定失败门槛：冷启动最大 2 秒、平均空闲 CPU 小于 0.5%、工作集最大 180 MB、安装包小于 80 MB、安装目录小于 150 MB、保存最大 300 ms。**
+- [ ] **Step 2: 实现结构化 JSON 输出并固定失败门槛：冷启动最大 2 秒、平均空闲 CPU 小于 0.5%、工作集最大 200 MiB、安装包小于 80 MiB、安装目录小于 150 MiB、保存最大 300 ms。**
 - [ ] **Step 3: 在 100% 和 150% DPI 分别运行；任何样本失败则脚本非零退出，文档记录原始最大值和平均值。**
 - [ ] **Step 4: 提交 `test: measure release performance gates`。**
 
