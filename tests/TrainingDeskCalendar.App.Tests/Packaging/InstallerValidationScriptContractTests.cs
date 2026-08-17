@@ -61,6 +61,15 @@ public sealed class InstallerValidationScriptContractTests
         Assert.Contains("StartsWith($artifactsPrefix", script, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Script_AllowsValidationWhenStartupValueDoesNotExist()
+    {
+        string script = ReadScript();
+
+        Assert.Contains("Get-ItemProperty -LiteralPath $runKey", script, StringComparison.Ordinal);
+        Assert.Contains("PSObject.Properties.Name -contains $runName", script, StringComparison.Ordinal);
+    }
+
     private static string ReadScript()
     {
         string? directory = AppContext.BaseDirectory;

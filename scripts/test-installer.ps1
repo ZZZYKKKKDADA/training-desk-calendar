@@ -78,11 +78,10 @@ if (Test-Path -LiteralPath $uninstallKey) {
 
 $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $runName = 'TrainingDeskCalendar'
-$savedRunValue = Get-ItemPropertyValue `
-    -LiteralPath $runKey `
-    -Name $runName `
-    -ErrorAction SilentlyContinue
-$hadRunValue = $null -ne $savedRunValue
+$runProperties = Get-ItemProperty -LiteralPath $runKey -ErrorAction SilentlyContinue
+$hadRunValue = $null -ne $runProperties -and
+    $runProperties.PSObject.Properties.Name -contains $runName
+$savedRunValue = if ($hadRunValue) { [string]$runProperties.$runName } else { $null }
 
 $sessionId = [Guid]::NewGuid().ToString('N')
 $validationRoot = Join-Path $artifactsRoot 'installer-validation'
