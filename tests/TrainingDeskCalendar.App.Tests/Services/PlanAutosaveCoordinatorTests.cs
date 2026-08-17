@@ -30,7 +30,8 @@ public sealed class PlanAutosaveCoordinatorTests
 
         TrainingPlan saved = Assert.Single(store.SavedPlans);
         Assert.Equal("最后一次", saved.Text);
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            first.WaitAsync(TimeSpan.FromSeconds(1)));
     }
 
     [Fact]
@@ -75,6 +76,23 @@ public sealed class PlanAutosaveCoordinatorTests
         await coordinator.FlushAsync();
 
         Assert.Equal("重试内容", Assert.Single(store.SavedPlans).Text);
+    }
+
+    [Fact]
+    public async Task ReplacedSaveFailure_CancelsTheSupersededTask()
+    {
+        var store = new FakePlanStore { RemainingSaveFailures = 1 };
+        var delay = new ControlledDelay();
+        await using var coordinator = CreateCoordinator(store, delay);
+        DateOnly date = new(2026, 8, 19);
+        Task first = coordinator.QueueAsync(Plan(date, "旧内容"));
+        Task latest = coordinator.QueueAsync(Plan(date, "失败内容"));
+
+        delay.Release(1);
+
+        await Assert.ThrowsAsync<IOException>(() => latest);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            first.WaitAsync(TimeSpan.FromSeconds(1)));
     }
 
     private static PlanAutosaveCoordinator CreateCoordinator(

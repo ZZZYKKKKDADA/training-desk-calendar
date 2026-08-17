@@ -116,6 +116,7 @@ internal sealed class PlanAutosaveCoordinator : IAsyncDisposable
                 if (IsCurrent(pendingSave))
                 {
                     pendingSave.Completion.TrySetException(exception);
+                    pendingSave.CancelSupersededCompletions();
                 }
             }
         }
@@ -158,6 +159,7 @@ internal sealed class PlanAutosaveCoordinator : IAsyncDisposable
                 catch (Exception exception)
                 {
                     save.Completion.TrySetException(exception);
+                    save.CancelSupersededCompletions();
                     throw;
                 }
 
