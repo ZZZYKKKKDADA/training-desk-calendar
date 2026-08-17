@@ -1,6 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <RuntimeIdentifier>$(WindowsRuntimeIdentifier)</RuntimeIdentifier>
+    <PublishAot>true</PublishAot>
+    <SelfContained>true</SelfContained>
+    <StripSymbols>true</StripSymbols>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>TrainingDeskCalendar.Launcher</AssemblyName>
     <RootNamespace>TrainingDeskCalendar.Launcher</RootNamespace>
   </PropertyGroup>
