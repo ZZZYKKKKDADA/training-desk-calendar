@@ -6,7 +6,7 @@
 
 **架构：** 领域层只使用 `DateOnly`、不可变记录和纯函数；应用服务负责校验、复制冲突和自动保存；存储层通过接口隔离 SQLite 与 JSON 文件。所有事务、覆盖和恢复规则都由 xUnit 测试验证，Phase 2 的 WPF 界面只能调用应用服务，不能直接读写数据库或注册表。
 
-**技术栈：** C# 14、.NET 10、`Microsoft.Data.Sqlite` 10.0.0、`System.Text.Json`、WPF 现有解决方案、xUnit。
+**技术栈：** C# 14、.NET 10、`Microsoft.Data.Sqlite` 10.0.11、`System.Text.Json`、WPF 现有解决方案、xUnit。
 
 ---
 
@@ -29,7 +29,7 @@ src/TrainingDeskCalendar.App/
     TrainingPlan.cs
     TwoWeekRange.cs
     CalendarRangeService.cs
-  Application/
+  Services/
     ITrainingPlanStore.cs
     TrainingPlanService.cs
     PlanAutosaveCoordinator.cs
@@ -46,9 +46,9 @@ tests/TrainingDeskCalendar.App.Tests/
   Domain/TrainingPlanTests.cs
   Persistence/SqlitePlanStoreTests.cs
   Persistence/SettingsStoreTests.cs
-  Application/TrainingPlanServiceTests.cs
-  Application/PlanAutosaveCoordinatorTests.cs
-  Application/DataTransferServiceTests.cs
+  Services/TrainingPlanServiceTests.cs
+  Services/PlanAutosaveCoordinatorTests.cs
+  Services/DataTransferServiceTests.cs
 ```
 
 ## Task 1：建立领域值对象与两周日期规则
@@ -232,9 +232,9 @@ git commit -m "feat: define calendar and training plan domain"
 
 **文件：**
 
-- 修改 `src/TrainingDeskCalendar.App/TrainingDeskCalendar.App.csproj`，增加 `<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />`
+- 修改 `src/TrainingDeskCalendar.App/TrainingDeskCalendar.App.csproj`，增加 `<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />`
 - 创建 `src/TrainingDeskCalendar.App/Persistence/AppDataPaths.cs`
-- 创建 `src/TrainingDeskCalendar.App/Application/ITrainingPlanStore.cs`
+- 创建 `src/TrainingDeskCalendar.App/Services/ITrainingPlanStore.cs`
 - 创建 `src/TrainingDeskCalendar.App/Persistence/SqlitePlanStore.cs`
 - 创建 `tests/TrainingDeskCalendar.App.Tests/Persistence/SqlitePlanStoreTests.cs`
 
@@ -243,7 +243,7 @@ git commit -m "feat: define calendar and training plan domain"
 接口固定为：
 
 ```csharp
-namespace TrainingDeskCalendar.App.Application;
+namespace TrainingDeskCalendar.App.Services;
 
 internal interface ITrainingPlanStore
 {
@@ -319,7 +319,7 @@ CREATE TABLE IF NOT EXISTS plans (
 ```powershell
 dotnet test tests/TrainingDeskCalendar.App.Tests/TrainingDeskCalendar.App.Tests.csproj --filter SqlitePlanStoreTests
 dotnet build TrainingDeskCalendar.sln --configuration Debug
-git add src/TrainingDeskCalendar.App/TrainingDeskCalendar.App.csproj src/TrainingDeskCalendar.App/Persistence src/TrainingDeskCalendar.App/Application/ITrainingPlanStore.cs tests/TrainingDeskCalendar.App.Tests/Persistence
+git add src/TrainingDeskCalendar.App/TrainingDeskCalendar.App.csproj src/TrainingDeskCalendar.App/Persistence src/TrainingDeskCalendar.App/Services/ITrainingPlanStore.cs tests/TrainingDeskCalendar.App.Tests/Persistence
 git commit -m "feat: persist training plans in sqlite"
 ```
 
@@ -327,14 +327,14 @@ git commit -m "feat: persist training plans in sqlite"
 
 **文件：**
 
-- 创建 `src/TrainingDeskCalendar.App/Application/CopyPlanResult.cs`
-- 创建 `src/TrainingDeskCalendar.App/Application/TrainingPlanService.cs`
-- 创建 `tests/TrainingDeskCalendar.App.Tests/Application/TrainingPlanServiceTests.cs`
+- 创建 `src/TrainingDeskCalendar.App/Services/CopyPlanResult.cs`
+- 创建 `src/TrainingDeskCalendar.App/Services/TrainingPlanService.cs`
+- 创建 `tests/TrainingDeskCalendar.App.Tests/Services/TrainingPlanServiceTests.cs`
 
 - [ ] **步骤 1：定义服务 API 并写失败测试**
 
 ```csharp
-namespace TrainingDeskCalendar.App.Application;
+namespace TrainingDeskCalendar.App.Services;
 
 internal sealed record CopyConflict(DateOnly SourceDate, DateOnly TargetDate);
 
@@ -382,7 +382,7 @@ internal sealed class TrainingPlanService
 
 ```powershell
 dotnet test tests/TrainingDeskCalendar.App.Tests/TrainingDeskCalendar.App.Tests.csproj --filter TrainingPlanServiceTests
-git add src/TrainingDeskCalendar.App/Application tests/TrainingDeskCalendar.App.Tests/Application
+git add src/TrainingDeskCalendar.App/Services tests/TrainingDeskCalendar.App.Tests/Services
 git commit -m "feat: add plan editing and copy application service"
 ```
 
@@ -390,8 +390,8 @@ git commit -m "feat: add plan editing and copy application service"
 
 **文件：**
 
-- 创建 `src/TrainingDeskCalendar.App/Application/PlanAutosaveCoordinator.cs`
-- 创建 `tests/TrainingDeskCalendar.App.Tests/Application/PlanAutosaveCoordinatorTests.cs`
+- 创建 `src/TrainingDeskCalendar.App/Services/PlanAutosaveCoordinator.cs`
+- 创建 `tests/TrainingDeskCalendar.App.Tests/Services/PlanAutosaveCoordinatorTests.cs`
 
 - [ ] **步骤 1：定义可测试的延迟边界和红灯测试**
 
@@ -411,7 +411,7 @@ internal delegate Task AutosaveDelay(
 
 ```powershell
 dotnet test tests/TrainingDeskCalendar.App.Tests/TrainingDeskCalendar.App.Tests.csproj --filter PlanAutosaveCoordinatorTests
-git add src/TrainingDeskCalendar.App/Application/PlanAutosaveCoordinator.cs tests/TrainingDeskCalendar.App.Tests/Application/PlanAutosaveCoordinatorTests.cs
+git add src/TrainingDeskCalendar.App/Services/PlanAutosaveCoordinator.cs tests/TrainingDeskCalendar.App.Tests/Services/PlanAutosaveCoordinatorTests.cs
 git commit -m "feat: debounce plan autosave"
 ```
 
@@ -483,8 +483,8 @@ git commit -m "feat: store validated user settings"
 **文件：**
 
 - 创建 `src/TrainingDeskCalendar.App/Persistence/SnapshotFormat.cs`
-- 创建 `src/TrainingDeskCalendar.App/Application/DataTransferService.cs`
-- 创建 `tests/TrainingDeskCalendar.App.Tests/Application/DataTransferServiceTests.cs`
+- 创建 `src/TrainingDeskCalendar.App/Services/DataTransferService.cs`
+- 创建 `tests/TrainingDeskCalendar.App.Tests/Services/DataTransferServiceTests.cs`
 
 - [ ] **步骤 1：先写完整恢复失败测试**
 
@@ -517,7 +517,7 @@ JSON 使用 camelCase，日期写为 ISO `yyyy-MM-dd`，色值写整数 `colorId
 ```powershell
 dotnet test tests/TrainingDeskCalendar.App.Tests/TrainingDeskCalendar.App.Tests.csproj --filter DataTransferServiceTests
 dotnet test TrainingDeskCalendar.sln --configuration Release
-git add src/TrainingDeskCalendar.App/Persistence/SnapshotFormat.cs src/TrainingDeskCalendar.App/Application/DataTransferService.cs tests/TrainingDeskCalendar.App.Tests/Application/DataTransferServiceTests.cs
+git add src/TrainingDeskCalendar.App/Persistence/SnapshotFormat.cs src/TrainingDeskCalendar.App/Services/DataTransferService.cs tests/TrainingDeskCalendar.App.Tests/Services/DataTransferServiceTests.cs
 git commit -m "feat: add versioned backup import and export"
 ```
 
