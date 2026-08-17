@@ -56,6 +56,18 @@ public partial class MainWindow : Window
         {
             await composition.Calendar.LoadAsync();
             PrototypeReadySignal.Write(App.ReadyFilePath);
+            if (!string.IsNullOrWhiteSpace(App.SaveLatencyFilePath) &&
+                App.SaveLatencySamples > 0)
+            {
+                await AutosaveLatencyProbe.WriteAsync(
+                    App.SaveLatencyFilePath,
+                    App.SaveLatencySamples,
+                    sample => composition.Autosave.QueueAsync(
+                        TrainingPlan.Create(
+                            DateOnly.FromDateTime(DateTime.Today).AddDays(sample),
+                            $"性能探针 {sample}",
+                            TaskColorId.Gray)));
+            }
             if (App.ExitAfter is TimeSpan delay)
             {
                 var timer = new DispatcherTimer { Interval = delay };

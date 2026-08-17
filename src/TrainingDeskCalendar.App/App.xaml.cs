@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Threading;
+using TrainingDeskCalendar.App.Diagnostics;
+using TrainingDeskCalendar.App.Domain;
 using TrainingDeskCalendar.App.Persistence;
 using TrainingDeskCalendar.App.Services;
 using TrainingDeskCalendar.App.Windows;
@@ -10,6 +12,9 @@ public partial class App : System.Windows.Application
 {
     internal static string? ReadyFilePath { get; private set; }
     internal static TimeSpan? ExitAfter { get; private set; }
+    internal static string? DataRoot { get; private set; }
+    internal static string? SaveLatencyFilePath { get; private set; }
+    internal static int SaveLatencySamples { get; private set; }
     private AppComposition? composition;
     private AppSingleInstance? singleInstance;
     private ITrayService? trayService;
@@ -26,24 +31,20 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        for (int index = 0; index < e.Args.Length; index++)
-        {
-            if (e.Args[index] == "--ready-file" && index + 1 < e.Args.Length)
-            {
-                ReadyFilePath = e.Args[++index];
-            }
-            else if (e.Args[index] == "--exit-after-seconds" &&
-                     index + 1 < e.Args.Length &&
-                     int.TryParse(e.Args[++index], out int seconds))
-            {
-                ExitAfter = TimeSpan.FromSeconds(seconds);
-            }
-        }
+        DiagnosticRunOptions options = DiagnosticRunOptions.Parse(e.Args);
+        ReadyFilePath = options.ReadyFile;
+        ExitAfter = options.ExitAfter;
+        DataRoot = options.DataRoot;
+        SaveLatencyFilePath = options.SaveLatencyFile;
+        SaveLatencySamples = options.SaveLatencySamples;
 
         try
         {
+            AppDataPaths dataPaths = string.IsNullOrWhiteSpace(DataRoot)
+                ? AppDataPaths.ForCurrentUser()
+                : AppDataPaths.ForRoot(DataRoot);
             composition = await AppComposition.CreateAsync(
-                AppDataPaths.ForCurrentUser(),
+                dataPaths,
                 DateOnly.FromDateTime(DateTime.Today));
             try
             {

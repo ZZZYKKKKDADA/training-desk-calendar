@@ -51,6 +51,8 @@ powershell -ExecutionPolicy Bypass -File scripts/test-installer.ps1
 
 发布前还应执行 `scripts/measure-release-payload.ps1`，确认五次 fresh-path 启动、工作集、安装包和安装目录门槛。
 
+Phase 3 最终本地验收还可执行 `scripts/measure-release.ps1` 和 `scripts/test-data-recovery.ps1`；结果分别写入 `docs/validation/release-performance-results.md` 和 `docs/validation/data-recovery-results.md`。Windows 版本矩阵见 `docs/validation/windows-release-matrix.md`，未实际执行的环境保持待验证。
+
 ## 维护
 
 提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)；发布步骤见 [docs/releasing.md](docs/releasing.md)。许可证为 [MIT](LICENSE)。
