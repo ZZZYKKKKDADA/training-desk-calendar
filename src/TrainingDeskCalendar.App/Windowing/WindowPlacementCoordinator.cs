@@ -11,6 +11,8 @@ internal sealed class WindowPlacementCoordinator(
     private string lastKnownMonitorId = monitorReader.GetMonitorIdForWindow(windowHandle);
     private bool applyingPlacement;
 
+    public string CurrentMonitorId => lastKnownMonitorId;
+
     public void TrackCurrentMonitor()
     {
         if (applyingPlacement)

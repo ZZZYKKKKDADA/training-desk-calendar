@@ -21,7 +21,7 @@
       </Style.Triggers>
     </Style>
   </Window.Resources>
-  <Border Margin="10" Padding="14" CornerRadius="8" Background="#D9F7F8FA" BorderBrush="#BFFFFFFF" BorderThickness="1">
+  <Border x:Name="SurfaceBorder" Margin="10" Padding="14" CornerRadius="8" Background="#D9F7F8FA" BorderBrush="#BFFFFFFF" BorderThickness="1">
     <Grid>
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />

@@ -29,10 +29,19 @@ internal sealed class AppComposition : IAsyncDisposable
     public AppDataPaths Paths { get; }
     public SqlitePlanStore PlanStore { get; }
     public SettingsStore SettingsStore { get; }
-    public AppSettings Settings { get; }
+    public AppSettings Settings { get; private set; }
     public TrainingPlanService PlanService { get; }
     public PlanAutosaveCoordinator Autosave { get; }
     public CalendarViewModel Calendar { get; }
+
+    public async Task SaveSettingsAsync(
+        AppSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        settings.Validate();
+        await SettingsStore.SaveAsync(settings, cancellationToken);
+        Settings = settings;
+    }
 
     public static async Task<AppComposition> CreateAsync(
         AppDataPaths paths,
