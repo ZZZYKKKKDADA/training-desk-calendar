@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Threading;
 using TrainingDeskCalendar.App.Persistence;
 using TrainingDeskCalendar.App.Services;
 using TrainingDeskCalendar.App.Windows;
@@ -59,6 +60,9 @@ public partial class App : System.Windows.Application
             trayService.Start(
                 new TrayState(true, composition.Settings.IsLocked, composition.Settings.StartWithWindows),
                 ExecuteTrayCommand);
+            _ = Dispatcher.BeginInvoke(
+                DispatcherPriority.ApplicationIdle,
+                new Action(() => _ = CheckForUpdatesAutomaticallyAsync()));
         }
         catch (Exception exception)
         {
@@ -133,12 +137,7 @@ public partial class App : System.Windows.Application
                 window.OpenSettings();
                 break;
             case TrayCommand.CheckUpdates:
-                await composition.UpdateCheckService.CheckAsync();
-                MessageBox.Show(
-                    "更新检查将在阶段 3 提供。",
-                    "训练桌历",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                await composition.UpdateCheckCoordinator.CheckAsync(UpdateCheckMode.Manual);
                 break;
             case TrayCommand.Exit:
                 await RequestExitAsync();
@@ -149,6 +148,21 @@ public partial class App : System.Windows.Application
     }
 
     internal Task RequestExitAsync() => exitOnce.Run(RequestExitCoreAsync);
+
+    private async Task CheckForUpdatesAutomaticallyAsync()
+    {
+        try
+        {
+            if (composition is not null)
+            {
+                await composition.UpdateCheckCoordinator.CheckAsync(UpdateCheckMode.Automatic);
+            }
+        }
+        catch
+        {
+            // Automatic update checks must never interrupt local calendar use.
+        }
+    }
 
     private async Task RequestExitCoreAsync()
     {

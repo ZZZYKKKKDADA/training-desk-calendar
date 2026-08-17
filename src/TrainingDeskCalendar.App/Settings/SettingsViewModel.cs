@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using TrainingDeskCalendar.App.Persistence;
+using TrainingDeskCalendar.App.Updates;
 
 namespace TrainingDeskCalendar.App.Settings;
 
@@ -13,6 +14,8 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
     private readonly Func<string, Task> importData;
     private readonly Func<Task> checkUpdates;
     private readonly Func<AppSettings>? currentSettings;
+    private readonly RepositoryMetadata? repository;
+    private readonly Action<Uri>? openRepository;
     private AppSettings baseline;
     private AppTheme theme;
     private double opacity;
@@ -28,7 +31,9 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
         Func<string, Task> exportData,
         Func<string, Task> importData,
         Func<Task> checkUpdates,
-        Func<AppSettings>? currentSettings = null)
+        Func<AppSettings>? currentSettings = null,
+        RepositoryMetadata? repository = null,
+        Action<Uri>? openRepository = null)
     {
         ArgumentNullException.ThrowIfNull(settings);
         baseline = settings.Validate();
@@ -38,6 +43,8 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
         this.importData = importData ?? throw new ArgumentNullException(nameof(importData));
         this.checkUpdates = checkUpdates ?? throw new ArgumentNullException(nameof(checkUpdates));
         this.currentSettings = currentSettings;
+        this.repository = repository;
+        this.openRepository = openRepository;
         theme = settings.Theme;
         opacity = settings.Opacity;
         isLocked = settings.IsLocked;
@@ -99,6 +106,10 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
     }
 
     public string VersionText => $"版本 {typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "开发版"}";
+    public string RepositoryText => repository is null
+        ? "当前构建未配置 GitHub 仓库"
+        : $"GitHub · {repository.Slug}";
+    public bool CanOpenRepository => repository is not null && openRepository is not null;
 
     public async Task ApplyAsync()
     {
@@ -156,7 +167,15 @@ internal sealed class SettingsViewModel : INotifyPropertyChanged
     public async Task CheckUpdatesAsync()
     {
         await RunDataActionAsync(checkUpdates);
-        StatusMessage = "更新检查将在阶段 3 提供。";
+        StatusMessage = "更新检查完成。";
+    }
+
+    public void OpenRepository()
+    {
+        if (repository is not null && openRepository is not null)
+        {
+            openRepository(repository.RepositoryUri);
+        }
     }
 
     private AppSettings CreateSettings() => baseline with

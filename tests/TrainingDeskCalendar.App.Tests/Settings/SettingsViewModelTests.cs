@@ -1,5 +1,6 @@
 using TrainingDeskCalendar.App.Persistence;
 using TrainingDeskCalendar.App.Settings;
+using TrainingDeskCalendar.App.Updates;
 using System.Xml.Linq;
 using Xunit;
 
@@ -82,7 +83,57 @@ public sealed class SettingsViewModelTests
         await viewModel.CheckUpdatesAsync();
 
         Assert.Equal(["startup", "export:export.json", "import:import.json", "update"], calls);
-        Assert.Equal("更新检查将在阶段 3 提供。", viewModel.StatusMessage);
+        Assert.Equal("更新检查完成。", viewModel.StatusMessage);
+    }
+
+    [Fact]
+    public void RepositoryLink_UsesInjectedMetadataAndHttpsLauncher()
+    {
+        Uri? opened = null;
+        RepositoryMetadata repository = RepositoryMetadata.Parse(
+            "https://github.com/owner/repo");
+        var viewModel = new SettingsViewModel(
+            AppSettings.Defaults,
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask,
+            _ => Task.CompletedTask,
+            () => Task.CompletedTask,
+            repository: repository,
+            openRepository: uri => opened = uri);
+
+        viewModel.OpenRepository();
+
+        Assert.Equal("GitHub · owner/repo", viewModel.RepositoryText);
+        Assert.True(viewModel.CanOpenRepository);
+        Assert.Equal(repository.RepositoryUri, opened);
+    }
+
+    [Fact]
+    public void LocalBuild_ExplainsThatRepositoryIsNotConfigured()
+    {
+        SettingsViewModel viewModel = CreateViewModel();
+
+        Assert.Equal("当前构建未配置 GitHub 仓库", viewModel.RepositoryText);
+        Assert.False(viewModel.CanOpenRepository);
+    }
+
+    [Fact]
+    public void SettingsWindow_RepositoryLinkBindsToMetadata()
+    {
+        XDocument document = XDocument.Load(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "Settings",
+            "SettingsWindow.xaml"));
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        XElement hyperlink = Assert.Single(document.Descendants(presentation + "Hyperlink"));
+
+        Assert.Equal("OnRepositoryClick", (string?)hyperlink.Attribute("Click"));
+        Assert.Contains(
+            hyperlink.Descendants(presentation + "Run"),
+            run => (string?)run.Attribute("Text") == "{Binding RepositoryText}");
     }
 
     [Fact]

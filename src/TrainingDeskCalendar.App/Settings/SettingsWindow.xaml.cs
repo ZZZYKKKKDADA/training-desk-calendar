@@ -64,6 +64,9 @@ public partial class SettingsWindow : Window
     private async void OnUpdateClick(object sender, RoutedEventArgs e) =>
         await InvokeDataActionAsync(viewModel.CheckUpdatesAsync);
 
+    private void OnRepositoryClick(object sender, RoutedEventArgs e) =>
+        viewModel.OpenRepository();
+
     private async void OnApplyClick(object sender, RoutedEventArgs e)
     {
         try

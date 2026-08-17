@@ -34,7 +34,12 @@
         <Button Padding="14,5" Content="应用" Click="OnApplyClick" />
       </StackPanel>
       <TextBlock Margin="0,20,0,0" Foreground="#5D6972" Text="{Binding VersionText}" />
-      <TextBlock Margin="0,4,0,0" Foreground="#5D6972" Text="MIT License · GitHub 项目链接将在阶段 3 发布时启用" />
+      <TextBlock Margin="0,4,0,0" Foreground="#5D6972">
+        <Run Text="MIT License · " />
+        <Hyperlink Click="OnRepositoryClick" IsEnabled="{Binding CanOpenRepository}">
+          <Run Text="{Binding RepositoryText}" />
+        </Hyperlink>
+      </TextBlock>
     </StackPanel>
   </ScrollViewer>
 </Window>

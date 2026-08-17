@@ -1,6 +1,8 @@
+using System.Net.Http;
 using TrainingDeskCalendar.App.Calendar;
 using TrainingDeskCalendar.App.Domain;
 using TrainingDeskCalendar.App.Persistence;
+using TrainingDeskCalendar.App.Updates;
 using TrainingDeskCalendar.App.Windows;
 
 namespace TrainingDeskCalendar.App.Services;
@@ -8,6 +10,7 @@ namespace TrainingDeskCalendar.App.Services;
 internal sealed class AppComposition : IAsyncDisposable
 {
     private readonly AsyncOnce disposeOnce = new();
+    private readonly HttpClient? ownedUpdateHttpClient;
 
     private AppComposition(
         AppDataPaths paths,
@@ -19,7 +22,11 @@ internal sealed class AppComposition : IAsyncDisposable
         CalendarViewModel calendar,
         DataTransferService transferService,
         IStartupRegistration startupRegistration,
-        IUpdateCheckService updateCheckService)
+        IUpdateCheckService updateCheckService,
+        UpdateCheckCoordinator updateCheckCoordinator,
+        ReleaseBuildMetadata buildMetadata,
+        IExternalUriLauncher uriLauncher,
+        HttpClient? ownedUpdateHttpClient)
     {
         Paths = paths;
         PlanStore = planStore;
@@ -31,6 +38,10 @@ internal sealed class AppComposition : IAsyncDisposable
         TransferService = transferService;
         StartupRegistration = startupRegistration;
         UpdateCheckService = updateCheckService;
+        UpdateCheckCoordinator = updateCheckCoordinator;
+        BuildMetadata = buildMetadata;
+        UriLauncher = uriLauncher;
+        this.ownedUpdateHttpClient = ownedUpdateHttpClient;
     }
 
     public AppDataPaths Paths { get; }
@@ -43,6 +54,9 @@ internal sealed class AppComposition : IAsyncDisposable
     public DataTransferService TransferService { get; }
     public IStartupRegistration StartupRegistration { get; }
     public IUpdateCheckService UpdateCheckService { get; }
+    public UpdateCheckCoordinator UpdateCheckCoordinator { get; }
+    public ReleaseBuildMetadata BuildMetadata { get; }
+    public IExternalUriLauncher UriLauncher { get; }
 
     public async Task SaveSettingsAsync(
         AppSettings settings,
@@ -94,6 +108,8 @@ internal sealed class AppComposition : IAsyncDisposable
         DateOnly today,
         TimeProvider? timeProvider = null,
         IStartupRegistration? startupRegistration = null,
+        ReleaseBuildMetadata? buildMetadata = null,
+        HttpClient? updateHttpClient = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(paths);
@@ -109,7 +125,34 @@ internal sealed class AppComposition : IAsyncDisposable
             (Environment.ProcessPath is string processPath
                 ? new StartupRegistration(processPath)
                 : new DisabledStartupRegistration());
-        var updateCheckService = new DeferredUpdateCheckService();
+        ReleaseBuildMetadata resolvedBuildMetadata = buildMetadata ??
+            ReleaseBuildMetadata.FromAssembly(typeof(AppComposition).Assembly);
+        HttpClient? ownedUpdateHttpClient = updateHttpClient is null
+            ? new HttpClient { Timeout = TimeSpan.FromSeconds(10) }
+            : null;
+        HttpClient resolvedUpdateHttpClient = updateHttpClient ?? ownedUpdateHttpClient!;
+        AppComposition? composition = null;
+        var updateCheckService = new GitHubReleaseUpdateCheckService(
+            resolvedUpdateHttpClient,
+            resolvedBuildMetadata.Repository,
+            resolvedBuildMetadata.Version,
+            clock,
+            settings.LastUpdateCheckUtc,
+            async (checkedAt, token) =>
+            {
+                if (composition is null)
+                {
+                    throw new InvalidOperationException("Application composition is not initialized.");
+                }
+                await composition.SaveSettingsAsync(
+                    composition.Settings with { LastUpdateCheckUtc = checkedAt },
+                    token);
+            });
+        IExternalUriLauncher uriLauncher = new ExternalUriLauncher();
+        var updateCheckCoordinator = new UpdateCheckCoordinator(
+            updateCheckService,
+            new WpfUpdateNotifications(),
+            uriLauncher);
         var calendar = new CalendarViewModel(
             planService,
             autosave,
@@ -117,7 +160,7 @@ internal sealed class AppComposition : IAsyncDisposable
             today,
             clock);
 
-        return new AppComposition(
+        composition = new AppComposition(
             paths,
             planStore,
             settingsStore,
@@ -127,7 +170,12 @@ internal sealed class AppComposition : IAsyncDisposable
             calendar,
             transferService,
             resolvedStartupRegistration,
-            updateCheckService);
+            updateCheckService,
+            updateCheckCoordinator,
+            resolvedBuildMetadata,
+            uriLauncher,
+            ownedUpdateHttpClient);
+        return composition;
     }
 
     public ValueTask DisposeAsync() => new(disposeOnce.Run(DisposeCoreAsync));
@@ -136,6 +184,7 @@ internal sealed class AppComposition : IAsyncDisposable
     {
         await Calendar.FlushAsync();
         await Autosave.DisposeAsync();
+        ownedUpdateHttpClient?.Dispose();
     }
 }
 

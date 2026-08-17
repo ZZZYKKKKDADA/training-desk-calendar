@@ -201,8 +201,10 @@ public partial class MainWindow : Window
             SetStartupAsync,
             ExportDataAsync,
             ImportDataAsync,
-            () => composition.UpdateCheckService.CheckAsync(),
-            () => composition.Settings);
+            () => composition.UpdateCheckCoordinator.CheckAsync(UpdateCheckMode.Manual),
+            () => composition.Settings,
+            composition.BuildMetadata.Repository,
+            composition.UriLauncher.Open);
         var window = new SettingsWindow(viewModel) { Owner = this };
         window.ShowDialog();
         interactionState.SetLocked(composition.Settings.IsLocked);
