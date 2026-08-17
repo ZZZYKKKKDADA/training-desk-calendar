@@ -1,4 +1,5 @@
 using TrainingDeskCalendar.App.Windows;
+using TrainingDeskCalendar.App.Persistence;
 using Xunit;
 
 namespace TrainingDeskCalendar.App.Tests.Windows;
@@ -46,6 +47,36 @@ public sealed class StartupRegistrationTests
             new StartupRegistration("TrainingDeskCalendar.App.exe", store));
     }
 
+    [Fact]
+    public async Task SettingsCoordinator_RollsBackRegistrationWhenSettingsSaveFails()
+    {
+        var registration = new FakeRegistration(isEnabled: true);
+        var coordinator = new StartupSettingsCoordinator(registration);
+
+        await Assert.ThrowsAsync<IOException>(() => coordinator.SetEnabledAsync(
+            AppSettings.Defaults,
+            enabled: false,
+            _ => Task.FromException(new IOException("settings write failed"))));
+
+        Assert.True(registration.IsEnabled);
+        Assert.Equal([false, true], registration.Changes);
+    }
+
+    [Fact]
+    public async Task SettingsCoordinator_ReturnsUpdatedSettingsAfterBothWritesSucceed()
+    {
+        var registration = new FakeRegistration(isEnabled: true);
+        var coordinator = new StartupSettingsCoordinator(registration);
+
+        AppSettings updated = await coordinator.SetEnabledAsync(
+            AppSettings.Defaults,
+            enabled: false,
+            _ => Task.CompletedTask);
+
+        Assert.False(registration.IsEnabled);
+        Assert.False(updated.StartWithWindows);
+    }
+
     private sealed class FakeStartupStore : IUserStartupStore
     {
         public string? LastPath { get; private set; }
@@ -67,6 +98,18 @@ public sealed class StartupRegistrationTests
         {
             LastPath = path;
             Values.Remove(name);
+        }
+    }
+
+    private sealed class FakeRegistration(bool isEnabled) : IStartupRegistration
+    {
+        public List<bool> Changes { get; } = [];
+        public bool IsEnabled { get; private set; } = isEnabled;
+
+        public void SetEnabled(bool enabled)
+        {
+            Changes.Add(enabled);
+            IsEnabled = enabled;
         }
     }
 }

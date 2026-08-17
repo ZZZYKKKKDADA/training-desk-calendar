@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -10,6 +11,7 @@ using TrainingDeskCalendar.App.Domain;
 using TrainingDeskCalendar.App.Desktop;
 using TrainingDeskCalendar.App.Diagnostics;
 using TrainingDeskCalendar.App.Persistence;
+using TrainingDeskCalendar.App.Settings;
 using TrainingDeskCalendar.App.Services;
 using TrainingDeskCalendar.App.Windowing;
 
@@ -22,6 +24,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer desktopWatchdog;
     private readonly DispatcherTimer settingsSaveTimer;
     private readonly WindowInteractionState interactionState = new();
+    private readonly WindowClosePolicy closePolicy = new();
     private readonly WindowStateService windowStateService = new();
     private readonly uint taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
     private WindowPlacementCoordinator? placementCoordinator;
@@ -43,6 +46,7 @@ public partial class MainWindow : Window
         SizeChanged += OnWindowGeometryChanged;
         SourceInitialized += OnSourceInitialized;
         ContentRendered += OnContentRendered;
+        Closing += OnClosing;
         Closed += OnClosed;
     }
 
@@ -58,7 +62,10 @@ public partial class MainWindow : Window
                 timer.Tick += (_, _) =>
                 {
                     timer.Stop();
-                    Application.Current.Shutdown();
+                    if (Application.Current is App app)
+                    {
+                        _ = app.RequestExitAsync();
+                    }
                 };
                 timer.Start();
             }
@@ -84,18 +91,21 @@ public partial class MainWindow : Window
         desktopWatchdog.Start();
     }
 
-    private async void OnClosed(object? sender, EventArgs e)
+    private void OnClosing(object? sender, CancelEventArgs e)
+    {
+        if (!closePolicy.ShouldHide)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        Hide();
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
     {
         desktopWatchdog.Stop();
         settingsSaveTimer.Stop();
-        try
-        {
-            await composition.DisposeAsync();
-        }
-        catch (Exception exception)
-        {
-            MessageBox.Show(this, $"退出前保存失败：{exception.Message}", "训练桌历", MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
     }
 
     private nint WindowMessageHook(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
@@ -153,7 +163,7 @@ public partial class MainWindow : Window
 
     private void OnColorClick(object sender, RoutedEventArgs e)
     {
-        if (sender is Button button && button.DataContext is DayCardViewModel card && int.TryParse(button.Tag?.ToString(), out int colorId))
+        if (sender is FrameworkElement element && element.DataContext is DayCardViewModel card && int.TryParse(element.Tag?.ToString(), out int colorId))
         {
             card.SelectColor((TaskColorId)colorId);
         }
@@ -170,9 +180,67 @@ public partial class MainWindow : Window
     private async void OnPreviousClick(object sender, RoutedEventArgs e) => await composition.Calendar.PreviousAsync();
     private async void OnTodayClick(object sender, RoutedEventArgs e) => await composition.Calendar.GoToTodayAsync();
     private async void OnNextClick(object sender, RoutedEventArgs e) => await composition.Calendar.NextAsync();
+    private async void OnLockClick(object sender, RoutedEventArgs e) =>
+        await UiCommandRunner.RunAsync(
+            () => SetLockedAsync(!IsLocked),
+            exception => DesktopStatusText.Text = $"锁定状态保存失败：{exception.Message}");
+    private void OnHideClick(object sender, RoutedEventArgs e) => Hide();
 
     private void OnSettingsClick(object sender, RoutedEventArgs e) =>
-        MessageBox.Show(this, "设置窗口将在下一项任务中启用。", "训练桌历", MessageBoxButton.OK, MessageBoxImage.Information);
+        OpenSettings();
+
+    internal bool IsLocked => interactionState.IsLocked;
+
+    internal void AllowExplicitClose() => closePolicy.RequestExit();
+
+    internal void OpenSettings()
+    {
+        var viewModel = new SettingsViewModel(
+            composition.Settings,
+            SaveSettingsAsync,
+            SetStartupAsync,
+            ExportDataAsync,
+            ImportDataAsync,
+            () => composition.UpdateCheckService.CheckAsync(),
+            () => composition.Settings);
+        var window = new SettingsWindow(viewModel) { Owner = this };
+        window.ShowDialog();
+        interactionState.SetLocked(composition.Settings.IsLocked);
+        ApplySavedWindowState();
+        ApplyAppearance();
+    }
+
+    internal async Task SetLockedAsync(bool locked)
+    {
+        await SaveSettingsAsync(composition.Settings with { IsLocked = locked });
+        ResizeMode = locked ? ResizeMode.NoResize : ResizeMode.CanResizeWithGrip;
+    }
+
+    private async Task SaveSettingsAsync(AppSettings settings)
+    {
+        await composition.SaveSettingsAsync(settings);
+        interactionState.SetLocked(settings.IsLocked);
+        ApplyAppearance();
+    }
+
+    private async Task SetStartupAsync(bool enabled)
+    {
+        await composition.SetStartWithWindowsAsync(enabled);
+    }
+
+    private async Task ExportDataAsync(string path)
+    {
+        await composition.Calendar.FlushAsync();
+        await composition.TransferService.ExportAsync(path);
+    }
+
+    private async Task ImportDataAsync(string path)
+    {
+        await composition.ImportAsync(path);
+        interactionState.SetLocked(composition.Settings.IsLocked);
+        ApplySavedWindowState();
+        ApplyAppearance();
+    }
 
     private void OnWindowGeometryChanged(object? sender, EventArgs e)
     {

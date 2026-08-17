@@ -1,5 +1,6 @@
 using System.IO;
 using Microsoft.Win32;
+using TrainingDeskCalendar.App.Persistence;
 
 namespace TrainingDeskCalendar.App.Windows;
 
@@ -75,6 +76,43 @@ internal sealed class StartupRegistration : IStartupRegistration
         {
             using RegistryKey? key = Registry.CurrentUser.OpenSubKey(path, writable: true);
             key?.DeleteValue(name, throwOnMissingValue: false);
+        }
+    }
+}
+
+internal sealed class StartupSettingsCoordinator(IStartupRegistration registration)
+{
+    public async Task<AppSettings> SetEnabledAsync(
+        AppSettings current,
+        bool enabled,
+        Func<AppSettings, Task> saveSettings)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        ArgumentNullException.ThrowIfNull(saveSettings);
+        bool previous = registration.IsEnabled;
+        AppSettings updated = current with { StartWithWindows = enabled };
+
+        registration.SetEnabled(enabled);
+        try
+        {
+            await saveSettings(updated);
+            return updated;
+        }
+        catch (Exception saveException)
+        {
+            try
+            {
+                registration.SetEnabled(previous);
+            }
+            catch (Exception rollbackException)
+            {
+                throw new AggregateException(
+                    "Startup registration changed, but settings persistence and rollback both failed.",
+                    saveException,
+                    rollbackException);
+            }
+
+            throw;
         }
     }
 }

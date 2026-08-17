@@ -6,5 +6,5 @@ public sealed record PrototypeDay(
     string Weekday,
     int DayNumber,
     string Plan,
-    Brush Background,
+    System.Windows.Media.Brush Background,
     bool IsToday);

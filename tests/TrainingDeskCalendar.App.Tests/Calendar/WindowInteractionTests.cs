@@ -1,11 +1,114 @@
 using TrainingDeskCalendar.App.Persistence;
 using TrainingDeskCalendar.App.Windowing;
+using TrainingDeskCalendar.App.Domain;
+using TrainingDeskCalendar.App.Calendar;
+using System.Xml.Linq;
 using Xunit;
 
 namespace TrainingDeskCalendar.App.Tests.Calendar;
 
 public sealed class WindowInteractionTests
 {
+    [Fact]
+    public void MainWindow_CompletedBinding_IsExplicitlyOneWay()
+    {
+        string solutionRoot = FindSolutionRoot();
+        XDocument document = XDocument.Load(Path.Combine(
+            solutionRoot,
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml"));
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+
+        XElement completedCheckBox = Assert.Single(
+            document.Descendants(presentation + "CheckBox"),
+            element => (string?)element.Attribute("ToolTip") == "切换完成状态");
+
+        Assert.Equal(
+            "{Binding IsCompleted, Mode=OneWay}",
+            (string?)completedCheckBox.Attribute("IsChecked"));
+    }
+
+    [Fact]
+    public void Application_UsesExplicitShutdownMode()
+    {
+        XDocument document = XDocument.Load(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "App.xaml"));
+
+        Assert.Equal(
+            "OnExplicitShutdown",
+            (string?)document.Root?.Attribute("ShutdownMode"));
+    }
+
+    [Fact]
+    public void WindowClosePolicy_HidesUntilExplicitExitIsRequested()
+    {
+        var policy = new WindowClosePolicy();
+
+        Assert.True(policy.ShouldHide);
+        policy.RequestExit();
+        Assert.False(policy.ShouldHide);
+    }
+
+    [Theory]
+    [InlineData(1, "#BFE3DA")]
+    [InlineData(2, "#C7D8F2")]
+    [InlineData(3, "#F4D1A6")]
+    [InlineData(4, "#F1C2C2")]
+    [InlineData(5, "#D9C7E8")]
+    [InlineData(6, "#D5DADF")]
+    public void TaskColorPalette_MapsTheSixApprovedCardFills(
+        int colorId,
+        string expectedHex)
+    {
+        Assert.Equal(expectedHex, TaskColorPalette.GetHex((TaskColorId)colorId));
+    }
+
+    [Fact]
+    public void MainWindow_ProvidesHeaderControlsAndSixColorRadioButtons()
+    {
+        XDocument document = XDocument.Load(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml"));
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+
+        Assert.Contains(
+            document.Descendants(presentation + "Button"),
+            element => (string?)element.Attribute("ToolTip") == "锁定或解锁组件");
+        Assert.Contains(
+            document.Descendants(presentation + "Button"),
+            element => (string?)element.Attribute("ToolTip") == "隐藏组件");
+        Assert.Equal(
+            6,
+            document.Descendants(presentation + "RadioButton")
+                .Count(element => element.Attribute("Tag") is not null));
+        Assert.DoesNotContain(
+            document.Descendants(presentation + "RadioButton"),
+            element => element.Attribute("GroupName") is not null);
+
+        XElement card = Assert.Single(
+            document.Descendants(presentation + "Border"),
+            element => element.Attribute("MouseLeftButtonUp") is not null);
+        Assert.Contains("SelectedColor", (string?)card.Attribute("Background"));
+    }
+
+    [Fact]
+    public void ApplicationExit_DoesNotSynchronouslyBlockOnAsyncDisposal()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "App.xaml.cs"));
+
+        Assert.DoesNotContain("GetAwaiter().GetResult()", source, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void LockedState_DisablesMovementAndResizeTogether()
     {
@@ -75,5 +178,18 @@ public sealed class WindowInteractionTests
         Assert.Equal(80, updated.WindowX);
         Assert.Equal(440, updated.WindowHeight);
         Assert.Equal(1, updated.Version);
+    }
+
+    private static string FindSolutionRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null &&
+               !File.Exists(Path.Combine(directory.FullName, "TrainingDeskCalendar.sln")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName ?? throw new DirectoryNotFoundException(
+            "Unable to locate TrainingDeskCalendar.sln from the test output directory.");
     }
 }

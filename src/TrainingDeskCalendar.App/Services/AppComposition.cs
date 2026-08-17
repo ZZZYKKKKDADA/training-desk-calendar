@@ -1,12 +1,13 @@
 using TrainingDeskCalendar.App.Calendar;
 using TrainingDeskCalendar.App.Domain;
 using TrainingDeskCalendar.App.Persistence;
+using TrainingDeskCalendar.App.Windows;
 
 namespace TrainingDeskCalendar.App.Services;
 
 internal sealed class AppComposition : IAsyncDisposable
 {
-    private bool disposed;
+    private readonly AsyncOnce disposeOnce = new();
 
     private AppComposition(
         AppDataPaths paths,
@@ -15,7 +16,10 @@ internal sealed class AppComposition : IAsyncDisposable
         AppSettings settings,
         TrainingPlanService planService,
         PlanAutosaveCoordinator autosave,
-        CalendarViewModel calendar)
+        CalendarViewModel calendar,
+        DataTransferService transferService,
+        IStartupRegistration startupRegistration,
+        IUpdateCheckService updateCheckService)
     {
         Paths = paths;
         PlanStore = planStore;
@@ -24,6 +28,9 @@ internal sealed class AppComposition : IAsyncDisposable
         PlanService = planService;
         Autosave = autosave;
         Calendar = calendar;
+        TransferService = transferService;
+        StartupRegistration = startupRegistration;
+        UpdateCheckService = updateCheckService;
     }
 
     public AppDataPaths Paths { get; }
@@ -33,6 +40,9 @@ internal sealed class AppComposition : IAsyncDisposable
     public TrainingPlanService PlanService { get; }
     public PlanAutosaveCoordinator Autosave { get; }
     public CalendarViewModel Calendar { get; }
+    public DataTransferService TransferService { get; }
+    public IStartupRegistration StartupRegistration { get; }
+    public IUpdateCheckService UpdateCheckService { get; }
 
     public async Task SaveSettingsAsync(
         AppSettings settings,
@@ -43,10 +53,47 @@ internal sealed class AppComposition : IAsyncDisposable
         Settings = settings;
     }
 
+    public async Task SetStartWithWindowsAsync(bool enabled)
+    {
+        var coordinator = new StartupSettingsCoordinator(StartupRegistration);
+        Settings = await coordinator.SetEnabledAsync(
+            Settings,
+            enabled,
+            settings => SettingsStore.SaveAsync(settings));
+    }
+
+    public async Task ImportAsync(
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        await Calendar.FlushAsync(cancellationToken);
+        await TransferService.ImportAsync(path, cancellationToken);
+        Settings = await SettingsStore.LoadAsync(cancellationToken);
+
+        Exception? startupError = null;
+        try
+        {
+            StartupRegistration.SetEnabled(Settings.StartWithWindows);
+        }
+        catch (Exception exception)
+        {
+            startupError = exception;
+        }
+
+        await Calendar.LoadAsync(cancellationToken);
+        if (startupError is not null)
+        {
+            throw new InvalidOperationException(
+                "数据已导入，但开机自启动状态未能同步。",
+                startupError);
+        }
+    }
+
     public static async Task<AppComposition> CreateAsync(
         AppDataPaths paths,
         DateOnly today,
         TimeProvider? timeProvider = null,
+        IStartupRegistration? startupRegistration = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(paths);
@@ -57,6 +104,12 @@ internal sealed class AppComposition : IAsyncDisposable
         AppSettings settings = await settingsStore.LoadAsync(cancellationToken);
         var planService = new TrainingPlanService(planStore, clock);
         var autosave = new PlanAutosaveCoordinator(planService);
+        var transferService = new DataTransferService(planStore, settingsStore, paths, clock);
+        IStartupRegistration resolvedStartupRegistration = startupRegistration ??
+            (Environment.ProcessPath is string processPath
+                ? new StartupRegistration(processPath)
+                : new DisabledStartupRegistration());
+        var updateCheckService = new DeferredUpdateCheckService();
         var calendar = new CalendarViewModel(
             planService,
             autosave,
@@ -71,18 +124,23 @@ internal sealed class AppComposition : IAsyncDisposable
             settings,
             planService,
             autosave,
-            calendar);
+            calendar,
+            transferService,
+            resolvedStartupRegistration,
+            updateCheckService);
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        if (disposed)
-        {
-            return;
-        }
+    public ValueTask DisposeAsync() => new(disposeOnce.Run(DisposeCoreAsync));
 
-        disposed = true;
+    private async Task DisposeCoreAsync()
+    {
         await Calendar.FlushAsync();
         await Autosave.DisposeAsync();
     }
+}
+
+internal sealed class DisabledStartupRegistration : IStartupRegistration
+{
+    public bool IsEnabled => false;
+    public void SetEnabled(bool enabled) { }
 }
