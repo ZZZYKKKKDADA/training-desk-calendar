@@ -28,6 +28,12 @@
 
 目标：完成当前用户安装器、快捷方式、卸载数据选项、GitHub Releases 更新检查、GitHub Actions、说明文档、性能复测和发布资产。
 
+详细计划：
+
+- [Phase 3A 当前用户安装器](2026-08-17-training-desk-calendar-phase3a-installer.md)
+- [Phase 3B GitHub 更新与发布](2026-08-17-training-desk-calendar-phase3b-github-updates.md)
+- [Phase 3C 最终 Windows 验收](2026-08-17-training-desk-calendar-phase3c-final-validation.md)
+
 完成门槛：Windows 10 22H2、Windows 11 24H2 和发布时最新稳定 Windows 11 的安装与端到端验收通过，GitHub Release 资产满足规格。
 
 ## 执行原则
