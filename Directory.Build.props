@@ -1,4 +1,5 @@
 <Project>
+  <Import Project="$(MSBuildThisFileDirectory)eng\Versions.props" />
   <PropertyGroup>
     <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
