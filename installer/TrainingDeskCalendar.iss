@@ -1,6 +1,8 @@
 #define AppName "TrainingDeskCalendar"
 #define AppDisplayName "训练桌历"
+#ifndef AppVersion
 #define AppVersion "0.1.0"
+#endif
 #define AppExecutable "TrainingDeskCalendar.App.exe"
 
 [Setup]
@@ -18,7 +20,10 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.19041
 OutputDir=..\artifacts\installer
-OutputBaseFilename=TrainingDeskCalendar-Setup-0.1.0-x64
+#ifndef OutputBaseFilename
+#define OutputBaseFilename "TrainingDeskCalendar-Setup-0.1.0-x64"
+#endif
+OutputBaseFilename={#OutputBaseFilename}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern

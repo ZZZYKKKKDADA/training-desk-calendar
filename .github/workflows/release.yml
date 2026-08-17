@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Validate release tag
+        shell: pwsh
+        run: |
+          ./scripts/validate-release-tag.ps1 -Tag $env:GITHUB_REF_NAME -VersionsPath 'eng\Versions.props'
+          "RELEASE_VERSION=$($env:GITHUB_REF_NAME.Substring(1))" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore locked dependencies
+        run: dotnet restore TrainingDeskCalendar.sln --runtime win-x64 --locked-mode
+
+      - name: Test Release
+        run: dotnet test TrainingDeskCalendar.sln --configuration Release --no-restore
+
+      - name: Build Windows payload
+        shell: pwsh
+        run: ./scripts/package-windows.ps1 -RepositoryUrl "https://github.com/${{ github.repository }}"
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --version=6.7.3 --no-progress -y
+
+      - name: Build current-user installer
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          & $iscc "/DAppVersion=$env:RELEASE_VERSION" "/DOutputBaseFilename=TrainingDeskCalendar-Setup-$env:RELEASE_VERSION-x64" /Qp installer\TrainingDeskCalendar.iss
+
+      - name: Write checksums
+        shell: pwsh
+        run: |
+          ./scripts/write-checksums.ps1 `
+            -Path "artifacts\installer\TrainingDeskCalendar-Setup-$env:RELEASE_VERSION-x64.exe" `
+            -OutputPath "artifacts\installer\TrainingDeskCalendar-Setup-$env:RELEASE_VERSION-x64.sha256.txt" `
+            -JsonOutputPath "artifacts\installer\TrainingDeskCalendar-Setup-$env:RELEASE_VERSION-x64.sha256.json"
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          @"
+          # 训练桌历 $env:GITHUB_REF_NAME
+
+          当前版本为 Windows x64 当前用户安装包。安装和卸载默认不需要管理员权限；卸载默认保留个人数据。
+          "@ | Set-Content -LiteralPath 'artifacts\release-notes.md' -Encoding utf8
+          gh release create $env:GITHUB_REF_NAME `
+            "artifacts\installer\TrainingDeskCalendar-Setup-$env:RELEASE_VERSION-x64.exe" `
+            "artifacts\installer\TrainingDeskCalendar-Setup-$env:RELEASE_VERSION-x64.sha256.txt" `
+            "artifacts\installer\TrainingDeskCalendar-Setup-$env:RELEASE_VERSION-x64.sha256.json" `
+            --title "训练桌历 $env:GITHUB_REF_NAME" `
+            --notes-file 'artifacts\release-notes.md'

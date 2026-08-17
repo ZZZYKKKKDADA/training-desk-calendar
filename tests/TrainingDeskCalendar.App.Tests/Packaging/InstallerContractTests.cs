@@ -73,7 +73,8 @@ public sealed class InstallerContractTests
 
         Assert.Contains("Source: \"..\\artifacts\\windows-x64\\payload\\*\"", script, StringComparison.Ordinal);
         Assert.Contains("OutputDir=..\\artifacts\\installer", script, StringComparison.Ordinal);
-        Assert.Contains("OutputBaseFilename=TrainingDeskCalendar-Setup-0.1.0-x64", script, StringComparison.Ordinal);
+        Assert.Contains("#define OutputBaseFilename \"TrainingDeskCalendar-Setup-0.1.0-x64\"", script, StringComparison.Ordinal);
+        Assert.Contains("OutputBaseFilename={#OutputBaseFilename}", script, StringComparison.Ordinal);
         Assert.Contains("LZMA2", script, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("CloseApplications=yes", script, StringComparison.Ordinal);
         Assert.Contains("RestartApplications=no", script, StringComparison.Ordinal);

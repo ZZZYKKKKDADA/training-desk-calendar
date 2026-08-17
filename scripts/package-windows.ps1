@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$OutputRoot
+    [string]$OutputRoot,
+    [string]$RepositoryUrl
 )
 
 $ErrorActionPreference = 'Stop'
@@ -40,10 +41,12 @@ $appProject = Join-Path $repoRoot 'src\TrainingDeskCalendar.App\TrainingDeskCale
     --configuration Release `
     --runtime $runtimeIdentifier `
     --self-contained true `
+    --no-restore `
     --output $payloadPath `
     -p:PublishSingleFile=true `
     -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:EnableCompressionInSingleFile=false `
+    $(if (-not [string]::IsNullOrWhiteSpace($RepositoryUrl)) { "-p:RepositoryUrl=$RepositoryUrl" } else { $null }) `
     -p:SatelliteResourceLanguages=zh-Hans `
     -p:DebugType=None `
     -p:DebugSymbols=false

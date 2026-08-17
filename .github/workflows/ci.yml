@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore locked dependencies
+        run: dotnet restore TrainingDeskCalendar.sln --runtime win-x64 --locked-mode
+
+      - name: Build Release
+        run: dotnet build TrainingDeskCalendar.sln --configuration Release --no-restore
+
+      - name: Test Debug
+        run: dotnet test TrainingDeskCalendar.sln --configuration Debug --no-restore
+
+      - name: Test Release
+        run: dotnet test TrainingDeskCalendar.sln --configuration Release --no-restore
+
+      - name: Check whitespace
+        shell: pwsh
+        run: git diff --check
