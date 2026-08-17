@@ -1,9 +1,9 @@
 ﻿# Data Recovery Validation Results
 
-- Audited UTC: 2026-08-17T19:03:33.5472690+00:00
-- Unique temporary root: C:\Users\82148\AppData\Local\Temp\training-desk-recovery-6b7c6463beba409c9b5895ea047770dc
+- Audited UTC: 2026-08-17T19:25:29.9743134+00:00
+- Unique temporary root: C:\Users\82148\AppData\Local\Temp\training-desk-recovery-9d4bf3ebfa574b7d9f59c31792b3dfc8
 - Scenario count: 5
-- Audit JSON SHA-256: f6729db08601f7e3fa0eaad84dbe0ab3ee6bc4a46102ed454f36b2aded3b242d
+- Audit JSON SHA-256: 8389cd20dafe6b1ba0a266596cc1c4d603666c07597bafbcd73cc818c697a223
 - Logs contain training plan text: False - PASS
 - All scenarios passed: True
 
