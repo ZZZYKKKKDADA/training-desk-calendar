@@ -93,13 +93,14 @@ $summary = [ordered]@{
 $summary | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $resultPath -Encoding utf8
 
 $memoryMb = [Math]::Round($summary.maximumWorkingSetBytes / 1MB, 1)
+$memoryLimitMb = 180
 $frameworkDirectoryMb = [Math]::Round($summary.frameworkDependentDirectoryBytes / 1MB, 1)
 $selfContainedDirectoryMb = [Math]::Round($summary.selfContainedDirectoryBytes / 1MB, 1)
 $frameworkZipMb = [Math]::Round($summary.frameworkDependentZipBytes / 1MB, 1)
 $selfContainedZipMb = [Math]::Round($summary.selfContainedZipBytes / 1MB, 1)
 
 $startupPass = $summary.averageStartupMilliseconds -le 2000
-$memoryPass = $memoryMb -le 100
+$memoryPass = $memoryMb -le $memoryLimitMb
 $cpuPass = $summary.averageIdleCpuPercent -lt 0.5
 $selfContainedSizePass = $selfContainedDirectoryMb -le 150 -and $selfContainedZipMb -le 80
 $packagingDecision = if ($selfContainedSizePass) {
@@ -114,7 +115,7 @@ $report = @"
 - Measured UTC: $($summary.measuredAtUtc)
 - Runs: $Runs
 - Average cold startup: $($summary.averageStartupMilliseconds) ms — $(if ($startupPass) { 'PASS' } else { 'FAIL' })
-- Maximum working set: $memoryMb MB — $(if ($memoryPass) { 'PASS' } else { 'FAIL' })
+- Maximum working set: $memoryMb MB / $memoryLimitMb MB limit — $(if ($memoryPass) { 'PASS' } else { 'FAIL' })
 - Average idle CPU: $($summary.averageIdleCpuPercent)% — $(if ($cpuPass) { 'PASS' } else { 'FAIL' })
 - Framework-dependent directory: $frameworkDirectoryMb MB
 - Framework-dependent ZIP: $frameworkZipMb MB

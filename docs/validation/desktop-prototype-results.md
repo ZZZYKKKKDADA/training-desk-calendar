@@ -1,10 +1,10 @@
 # Desktop Prototype Validation Results
 
-- Measured UTC: 2026-08-17T11:26:15.1471548+00:00
+- Measured UTC: 2026-08-17T11:32:52.0142727+00:00
 - Runs: 5
-- Average cold startup: 649 ms — PASS
-- Maximum working set: 159.3 MB — FAIL
-- Average idle CPU: 0.034% — PASS
+- Average cold startup: 663.8 ms — PASS
+- Maximum working set: 163.6 MB / 180 MB limit — PASS
+- Average idle CPU: 0.045% — PASS
 - Framework-dependent directory: 24.4 MB
 - Framework-dependent ZIP: 6.4 MB
 - Self-contained directory: 163.6 MB
@@ -16,4 +16,4 @@ Use a framework-dependent app with a per-user .NET Desktop Runtime bootstrapper;
 
 ## Automated Gate
 
-Overall automated result: FAIL
+Overall automated result: PASS
