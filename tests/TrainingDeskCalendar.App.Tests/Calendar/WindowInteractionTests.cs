@@ -238,6 +238,46 @@ public sealed class WindowInteractionTests
         Assert.DoesNotContain("WorkerW was not found", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MainWindow_DatesUseArrowsWithoutTodayButtonAndDarkRangeText()
+    {
+        XDocument document = XDocument.Load(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml"));
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+
+        Assert.DoesNotContain(
+            document.Descendants(presentation + "Button"),
+            element => (string?)element.Attribute("Content") == "今天");
+
+        XElement rangeLabel = Assert.Single(
+            document.Descendants(presentation + "TextBlock"),
+            element => (string?)element.Attribute("Text") == "{Binding RangeLabel}");
+        Assert.Equal("#20262B", (string?)rangeLabel.Attribute("Foreground"));
+    }
+
+    [Fact]
+    public void MainWindow_IsExplicitlyNonTopmost()
+    {
+        XDocument document = XDocument.Load(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml"));
+
+        Assert.Equal("False", (string?)document.Root?.Attribute("Topmost"));
+
+        string source = File.ReadAllText(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "Desktop",
+            "Win32DesktopWindowApi.cs"));
+        Assert.Contains("HwndNoTopmost", source, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(0, "#F7F8FA", "#20262B")]
     [InlineData(1, "#20262B", "#F7F8FA")]

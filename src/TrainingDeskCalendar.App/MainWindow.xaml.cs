@@ -266,7 +266,6 @@ public partial class MainWindow : Window
     }
 
     private async void OnPreviousClick(object sender, RoutedEventArgs e) => await composition.Calendar.PreviousAsync();
-    private async void OnTodayClick(object sender, RoutedEventArgs e) => await composition.Calendar.GoToTodayAsync();
     private async void OnNextClick(object sender, RoutedEventArgs e) => await composition.Calendar.NextAsync();
     private async void OnLockClick(object sender, RoutedEventArgs e) =>
         await UiCommandRunner.RunAsync(

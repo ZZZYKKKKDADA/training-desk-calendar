@@ -11,6 +11,7 @@
         AllowsTransparency="True"
         Background="Transparent"
         ResizeMode="CanResizeWithGrip"
+        Topmost="False"
         ShowInTaskbar="False"
         PreviewMouseLeftButtonDown="OnWindowPreviewMouseLeftButtonDown">
   <Window.Resources>
@@ -65,14 +66,13 @@
         </StackPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
           <Button Margin="4,0,0,0" Padding="9,3" ToolTip="上一页" Click="OnPreviousClick" Content="‹" />
-          <Button Margin="4,0,0,0" Padding="9,3" ToolTip="回到今天" Click="OnTodayClick" Content="今天" />
           <Button Margin="4,0,0,0" Padding="9,3" ToolTip="下一页" Click="OnNextClick" Content="›" />
           <Button Margin="10,0,0,0" Padding="9,3" ToolTip="锁定或解锁组件" Click="OnLockClick" Content="锁定" />
           <Button Margin="10,0,0,0" Padding="9,3" ToolTip="打开设置" Click="OnSettingsClick" Content="设置" />
           <Button Margin="4,0,0,0" Padding="9,3" ToolTip="隐藏组件" Click="OnHideClick" Content="隐藏" />
         </StackPanel>
       </DockPanel>
-      <TextBlock Grid.Row="1" Margin="0,0,0,8" Foreground="#5D6972" Text="{Binding RangeLabel}" />
+      <TextBlock Grid.Row="1" Margin="0,0,0,8" Foreground="#20262B" Text="{Binding RangeLabel}" />
       <ItemsControl Grid.Row="2" ItemsSource="{Binding Days}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>

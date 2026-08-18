@@ -14,11 +14,11 @@
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/ZZZYKKKKDADA/training-desk-calendar/releases) 下载 `TrainingDeskCalendar-Setup-0.1.1-x64.exe`，双击安装。安装位置默认是当前用户的 `%LOCALAPPDATA%\Programs\TrainingDeskCalendar`，不会写入 `Program Files` 或 HKLM，也不会弹出管理员权限提示。
+从 [GitHub Releases](https://github.com/ZZZYKKKKDADA/training-desk-calendar/releases) 下载 `TrainingDeskCalendar-Setup-0.1.2-x64.exe`，双击安装。安装位置默认是当前用户的 `%LOCALAPPDATA%\Programs\TrainingDeskCalendar`，不会写入 `Program Files` 或 HKLM，也不会弹出管理员权限提示。
 
 安装完成后默认启用当前用户开机自启动，可以在设置页或托盘菜单关闭。桌面快捷方式和开始菜单入口均显示为“训练桌历”。
 
-项目源码和 CI 位于 [ZZZYKKKKDADA/training-desk-calendar](https://github.com/ZZZYKKKKDADA/training-desk-calendar)。当前可安装版本为 [训练桌历 v0.1.1](https://github.com/ZZZYKKKKDADA/training-desk-calendar/releases/tag/v0.1.1)，Release 同时提供 SHA-256 文本和 JSON 校验文件；此前的 `v0.1.0` 保留为历史版本。
+项目源码和 CI 位于 [ZZZYKKKKDADA/training-desk-calendar](https://github.com/ZZZYKKKKDADA/training-desk-calendar)。当前可安装版本为 [训练桌历 v0.1.2](https://github.com/ZZZYKKKKDADA/training-desk-calendar/releases/tag/v0.1.2)，Release 同时提供 SHA-256 文本和 JSON 校验文件；此前的 `v0.1.0` 和 `v0.1.1` 保留为历史版本。
 
 ## 数据与卸载
 

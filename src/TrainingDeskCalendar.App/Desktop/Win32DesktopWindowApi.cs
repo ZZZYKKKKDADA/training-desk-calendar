@@ -14,7 +14,9 @@ internal sealed class Win32DesktopWindowApi : IDesktopWindowApi
     private const uint SwpNoMove = 0x0002;
     private const uint SwpNoSize = 0x0001;
     private const uint SwpNoZOrder = 0x0004;
+    private const uint SwpNoActivate = 0x0010;
     private const uint SwpFrameChanged = 0x0020;
+    private static readonly nint HwndNoTopmost = (nint)(-2);
 
     private readonly ConcurrentDictionary<nint, nint> originalStyles = new();
 
@@ -74,12 +76,12 @@ internal sealed class Win32DesktopWindowApi : IDesktopWindowApi
 
         _ = SetWindowPos(
             windowHandle,
-            nint.Zero,
+            HwndNoTopmost,
             0,
             0,
             0,
             0,
-            SwpNoMove | SwpNoSize | SwpNoZOrder | SwpFrameChanged);
+            SwpNoMove | SwpNoSize | SwpNoActivate | SwpFrameChanged);
     }
 
     private static nint FindDesktopWorkerWindow()
