@@ -18,6 +18,8 @@ public sealed class ReleaseWorkflowContractTests
         Assert.Contains("scripts/package-windows.ps1", workflow, StringComparison.Ordinal);
         Assert.Contains("RepositoryUrl", workflow, StringComparison.Ordinal);
         Assert.Contains("ISCC.exe", workflow, StringComparison.Ordinal);
+        Assert.Contains("choco install innosetup --version=6.7.1", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("--version=6.7.3", workflow, StringComparison.Ordinal);
         Assert.Contains("RELEASE_VERSION", workflow, StringComparison.Ordinal);
         Assert.Contains("/DAppVersion=", workflow, StringComparison.Ordinal);
         Assert.Contains("write-checksums.ps1", workflow, StringComparison.Ordinal);
