@@ -6,7 +6,7 @@
 
 1. 修改 `eng/Versions.props` 中的 `VersionPrefix`。
 2. 顺序执行锁定还原、Debug/Release 测试和 `git diff --check`。
-3. 创建与版本完全一致的标签，例如 `VersionPrefix=0.1.2` 时使用 `v0.1.2`。
+3. 创建与版本完全一致的标签，例如 `VersionPrefix=0.1.3` 时使用 `v0.1.3`。
 
 Release 工作流会用 `scripts/validate-release-tag.ps1` 校验标签，标签不是 `vMAJOR.MINOR.PATCH` 或与 `VersionPrefix` 不一致时会停止。
 
@@ -28,8 +28,8 @@ powershell -ExecutionPolicy Bypass -File scripts/package-windows.ps1 `
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/write-checksums.ps1 `
-  -Path 'artifacts\installer\TrainingDeskCalendar-Setup-0.1.2-x64.exe' `
-  -OutputPath 'artifacts\installer\TrainingDeskCalendar-Setup-0.1.2-x64.sha256.txt'
+  -Path 'artifacts\installer\TrainingDeskCalendar-Setup-0.1.3-x64.exe' `
+  -OutputPath 'artifacts\installer\TrainingDeskCalendar-Setup-0.1.3-x64.sha256.txt'
 ```
 
 ## GitHub Release

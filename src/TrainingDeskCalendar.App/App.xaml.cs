@@ -125,6 +125,7 @@ public partial class App : System.Windows.Application
         switch (command)
         {
             case TrayCommand.Show:
+                window.WindowState = WindowState.Normal;
                 window.Show();
                 window.Activate();
                 break;

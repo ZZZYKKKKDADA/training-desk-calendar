@@ -52,7 +52,7 @@ $artifactsPrefix = $artifactsRoot.TrimEnd([IO.Path]::DirectorySeparatorChar) +
     [IO.Path]::DirectorySeparatorChar
 if ([string]::IsNullOrWhiteSpace($InstallerPath)) {
     $InstallerPath = Join-Path $artifactsRoot `
-        'installer\TrainingDeskCalendar-Setup-0.1.2-x64.exe'
+        'installer\TrainingDeskCalendar-Setup-0.1.3-x64.exe'
 }
 $InstallerPath = [IO.Path]::GetFullPath($InstallerPath)
 if (-not $InstallerPath.StartsWith($artifactsPrefix, [StringComparison]::OrdinalIgnoreCase)) {

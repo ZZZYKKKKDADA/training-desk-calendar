@@ -82,7 +82,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            DesktopStatusText.Text = $"数据加载失败：{exception.Message}";
+            ErrorStatusText.Text = $"数据加载失败：{exception.Message}";
         }
     }
 
@@ -128,10 +128,7 @@ public partial class MainWindow : Window
 
     private void AttachToDesktop()
     {
-        DesktopAttachResult result = desktopHostService.Attach(windowHandle);
-        DesktopStatusText.Text = result.Status == DesktopAttachStatus.Attached
-            ? "桌面层：已连接"
-            : "桌面层：普通窗口（桌面嵌入不可用）";
+        _ = desktopHostService.Attach(windowHandle);
     }
 
     private async void OnWindowPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -145,7 +142,7 @@ public partial class MainWindow : Window
 
         await UiCommandRunner.RunAsync(
             () => composition.Calendar.SaveEditAsync(editingCard),
-            exception => DesktopStatusText.Text = $"保存失败：{exception.Message}");
+            exception => ErrorStatusText.Text = $"保存失败：{exception.Message}");
     }
 
     private static bool IsWithinCard(DependencyObject? source, DayCardViewModel card)
@@ -270,8 +267,17 @@ public partial class MainWindow : Window
     private async void OnLockClick(object sender, RoutedEventArgs e) =>
         await UiCommandRunner.RunAsync(
             () => SetLockedAsync(!IsLocked),
-            exception => DesktopStatusText.Text = $"锁定状态保存失败：{exception.Message}");
-    private void OnHideClick(object sender, RoutedEventArgs e) => Hide();
+            exception => ErrorStatusText.Text = $"锁定状态保存失败：{exception.Message}");
+    private void OnMinimizeClick(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState.Minimized;
+
+    private async void OnCloseClick(object sender, RoutedEventArgs e)
+    {
+        if (Application.Current is App app)
+        {
+            await app.RequestExitAsync();
+        }
+    }
 
     private void OnSettingsClick(object sender, RoutedEventArgs e) =>
         OpenSettings();
@@ -364,7 +370,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            DesktopStatusText.Text = $"窗口状态保存失败：{exception.Message}";
+            ErrorStatusText.Text = $"窗口状态保存失败：{exception.Message}";
         }
     }
 
@@ -388,7 +394,7 @@ public partial class MainWindow : Window
         SurfaceBorder.Background = new SolidColorBrush(surface);
         SurfaceBorder.BorderBrush = new SolidColorBrush(
             (Color)ColorConverter.ConvertFromString(palette.BorderHex)!);
-        DesktopStatusText.Foreground = new SolidColorBrush(
+        ErrorStatusText.Foreground = new SolidColorBrush(
             (Color)ColorConverter.ConvertFromString(palette.ForegroundHex)!);
     }
 

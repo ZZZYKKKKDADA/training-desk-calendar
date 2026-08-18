@@ -69,7 +69,8 @@
           <Button Margin="4,0,0,0" Padding="9,3" ToolTip="下一页" Click="OnNextClick" Content="›" />
           <Button Margin="10,0,0,0" Padding="9,3" ToolTip="锁定或解锁组件" Click="OnLockClick" Content="锁定" />
           <Button Margin="10,0,0,0" Padding="9,3" ToolTip="打开设置" Click="OnSettingsClick" Content="设置" />
-          <Button Margin="4,0,0,0" Padding="9,3" ToolTip="隐藏组件" Click="OnHideClick" Content="隐藏" />
+          <Button Margin="4,0,0,0" Padding="9,3" ToolTip="最小化" Click="OnMinimizeClick" Content="—" />
+          <Button Margin="4,0,0,0" Padding="9,3" ToolTip="关闭程序" Click="OnCloseClick" Content="×" />
         </StackPanel>
       </DockPanel>
       <TextBlock Grid.Row="1" Margin="0,0,0,8" Foreground="#20262B" Text="{Binding RangeLabel}" />
@@ -138,7 +139,7 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
-      <TextBlock x:Name="DesktopStatusText" Grid.Row="3" Margin="0,8,0,0" HorizontalAlignment="Right" FontSize="11" Foreground="#5D6972" />
+      <TextBlock x:Name="ErrorStatusText" Grid.Row="3" Margin="0,8,0,0" HorizontalAlignment="Right" FontSize="11" Foreground="#5D6972" />
     </Grid>
   </Border>
 </Window>

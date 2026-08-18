@@ -108,7 +108,7 @@ public sealed class WindowInteractionTests
             element => (string?)element.Attribute("ToolTip") == "锁定或解锁组件");
         Assert.Contains(
             document.Descendants(presentation + "Button"),
-            element => (string?)element.Attribute("ToolTip") == "隐藏组件");
+            element => (string?)element.Attribute("ToolTip") == "最小化");
         Assert.Equal(
             6,
             document.Descendants(presentation + "RadioButton")
@@ -226,16 +226,66 @@ public sealed class WindowInteractionTests
     }
 
     [Fact]
-    public void MainWindow_UsesLocalizedDesktopFallbackStatus()
+    public void MainWindow_DoesNotRenderDesktopFallbackStatus()
     {
+        XDocument document = XDocument.Load(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml"));
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+        Assert.DoesNotContain(
+            document.Descendants(presentation + "TextBlock"),
+            element => (string?)element.Attribute(xaml + "Name") == "DesktopStatusText");
+
         string source = File.ReadAllText(Path.Combine(
             FindSolutionRoot(),
             "src",
             "TrainingDeskCalendar.App",
             "MainWindow.xaml.cs"));
 
-        Assert.Contains("桌面层：普通窗口（桌面嵌入不可用）", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("WorkerW was not found", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("桌面层：", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("DesktopStatusText", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MainWindow_ProvidesMinimizeAndCloseButtons()
+    {
+        XDocument document = XDocument.Load(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml"));
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+
+        Assert.Contains(
+            document.Descendants(presentation + "Button"),
+            element => (string?)element.Attribute("ToolTip") == "最小化");
+        Assert.Contains(
+            document.Descendants(presentation + "Button"),
+            element => (string?)element.Attribute("ToolTip") == "关闭程序");
+
+        string source = File.ReadAllText(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml.cs"));
+        Assert.Contains("WindowState = WindowState.Minimized", source, StringComparison.Ordinal);
+        Assert.Contains("RequestExitAsync", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TrayShow_RestoresAMinimizedWindow()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "App.xaml.cs"));
+
+        Assert.Contains("window.WindowState = WindowState.Normal", source, StringComparison.Ordinal);
     }
 
     [Fact]
