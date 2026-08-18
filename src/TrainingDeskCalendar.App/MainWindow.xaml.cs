@@ -21,7 +21,6 @@ public partial class MainWindow : Window
 {
     private readonly AppComposition composition;
     private readonly DesktopHostService desktopHostService = new(new Win32DesktopWindowApi());
-    private readonly DispatcherTimer desktopWatchdog;
     private readonly DispatcherTimer settingsSaveTimer;
     private readonly WindowInteractionState interactionState = new();
     private readonly WindowClosePolicy closePolicy = new();
@@ -39,8 +38,6 @@ public partial class MainWindow : Window
         ApplySavedWindowState();
         interactionState.SetLocked(composition.Settings.IsLocked);
         ApplyAppearance();
-        desktopWatchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-        desktopWatchdog.Tick += OnDesktopWatchdogTick;
         settingsSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         settingsSaveTimer.Tick += OnSettingsSaveTimerTick;
         LocationChanged += OnWindowGeometryChanged;
@@ -101,7 +98,6 @@ public partial class MainWindow : Window
         HwndSource.FromHwnd(windowHandle)?.AddHook(WindowMessageHook);
         AttachToDesktop();
         placementCoordinator.EnsureVisible();
-        desktopWatchdog.Start();
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)
@@ -117,7 +113,6 @@ public partial class MainWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
-        desktopWatchdog.Stop();
         settingsSaveTimer.Stop();
     }
 
@@ -137,12 +132,6 @@ public partial class MainWindow : Window
         DesktopStatusText.Text = result.Status == DesktopAttachStatus.Attached
             ? "桌面层：已连接"
             : $"桌面层：普通窗口 · {result.FailureReason}";
-    }
-
-    private void OnDesktopWatchdogTick(object? sender, EventArgs e)
-    {
-        AttachToDesktop();
-        placementCoordinator?.EnsureVisible();
     }
 
     private void OnHeaderMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

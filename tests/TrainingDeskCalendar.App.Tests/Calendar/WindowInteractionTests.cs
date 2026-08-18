@@ -190,6 +190,19 @@ public sealed class WindowInteractionTests
         Assert.DoesNotContain("DragMove();", codeBehind, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MainWindow_DoesNotPeriodicallyReattachToDesktop()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml.cs"));
+
+        Assert.DoesNotContain("desktopWatchdog", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("OnDesktopWatchdogTick", source, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(0, "#F7F8FA", "#20262B")]
     [InlineData(1, "#20262B", "#F7F8FA")]
