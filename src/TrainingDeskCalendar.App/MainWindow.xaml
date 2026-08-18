@@ -53,7 +53,11 @@
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
-      <DockPanel Margin="0,0,0,8" MouseLeftButtonDown="OnHeaderMouseLeftButtonDown">
+      <DockPanel Margin="0,0,0,8"
+                 MouseLeftButtonDown="OnHeaderMouseLeftButtonDown"
+                 MouseMove="OnHeaderMouseMove"
+                 MouseLeftButtonUp="OnHeaderMouseLeftButtonUp"
+                 LostMouseCapture="OnHeaderLostMouseCapture">
         <StackPanel Orientation="Horizontal">
           <TextBlock FontSize="18" FontWeight="SemiBold" Text="训练桌历" />
           <TextBlock Margin="10,3,0,0" Foreground="#5D6972" Text="两周训练计划" />

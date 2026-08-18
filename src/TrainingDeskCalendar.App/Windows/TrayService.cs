@@ -118,7 +118,11 @@ internal sealed class TrayService : ITrayService
         };
         messageWindow = new HwndSource(parameters);
         messageWindow.AddHook(WindowHook);
-        iconHandle = LoadIcon(nint.Zero, new nint(ApplicationIcon));
+        iconHandle = LoadIcon(GetModuleHandle(null), new nint(ApplicationIcon));
+        if (iconHandle == nint.Zero)
+        {
+            iconHandle = LoadIcon(nint.Zero, new nint(ApplicationIcon));
+        }
         if (iconHandle == nint.Zero)
         {
             Dispose();
@@ -292,6 +296,9 @@ internal sealed class TrayService : ITrayService
 
     [DllImport("user32.dll", EntryPoint = "LoadIconW", SetLastError = true)]
     private static extern nint LoadIcon(nint instance, nint iconName);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern nint GetModuleHandle(string? moduleName);
 
     [DllImport("user32.dll", EntryPoint = "CreatePopupMenu", SetLastError = true)]
     private static extern nint CreatePopupMenu();

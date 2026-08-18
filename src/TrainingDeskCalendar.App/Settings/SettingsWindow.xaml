@@ -33,11 +33,11 @@
         <Button Margin="0,0,8,0" Padding="14,5" Content="取消" Click="OnCancelClick" />
         <Button Padding="14,5" Content="应用" Click="OnApplyClick" />
       </StackPanel>
-      <TextBlock Margin="0,20,0,0" Foreground="#5D6972" Text="{Binding VersionText}" />
+      <TextBlock Margin="0,20,0,0" Foreground="#5D6972" Text="{Binding VersionText, Mode=OneWay}" />
       <TextBlock Margin="0,4,0,0" Foreground="#5D6972">
         <Run Text="MIT License · " />
-        <Hyperlink Click="OnRepositoryClick" IsEnabled="{Binding CanOpenRepository}">
-          <Run Text="{Binding RepositoryText}" />
+        <Hyperlink Click="OnRepositoryClick" IsEnabled="{Binding CanOpenRepository, Mode=OneWay}">
+          <Run Text="{Binding RepositoryText, Mode=OneWay}" />
         </Hyperlink>
       </TextBlock>
     </StackPanel>

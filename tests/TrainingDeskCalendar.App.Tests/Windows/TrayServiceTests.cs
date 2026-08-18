@@ -23,6 +23,41 @@ public sealed class TrayServiceTests
     }
 
     [Fact]
+    public void ApplicationProject_EmbedsTheCalendarIcon()
+    {
+        string project = ReadRepositoryFile(
+            "src",
+            "TrainingDeskCalendar.App",
+            "TrainingDeskCalendar.App.csproj");
+
+        Assert.Contains(
+            "<ApplicationIcon>Assets\\calendar.ico</ApplicationIcon>",
+            project,
+            StringComparison.Ordinal);
+        Assert.True(File.Exists(ReadRepositoryPath(
+            "src",
+            "TrainingDeskCalendar.App",
+            "Assets",
+            "calendar.ico")));
+    }
+
+    [Fact]
+    public void TrayService_LoadsTheEmbeddedApplicationIconFromItsModule()
+    {
+        string source = File.ReadAllText(ReadRepositoryPath(
+            "src",
+            "TrainingDeskCalendar.App",
+            "Windows",
+            "TrayService.cs"));
+
+        Assert.Contains("GetModuleHandle(null)", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "LoadIcon(GetModuleHandle(null), new nint(ApplicationIcon))",
+            source,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MenuModel_ContainsTheApprovedCommandsAndStateLabels()
     {
         IReadOnlyList<TrayMenuItem> items = TrayMenuModel.Create(
@@ -74,4 +109,20 @@ public sealed class TrayServiceTests
 
         Assert.Null(map.Resolve(uint.MaxValue));
     }
+
+    private static string ReadRepositoryPath(params string[] pathParts)
+    {
+        string? directory = AppContext.BaseDirectory;
+        while (directory is not null &&
+               !File.Exists(Path.Combine(directory, "TrainingDeskCalendar.sln")))
+        {
+            directory = Directory.GetParent(directory)?.FullName;
+        }
+
+        Assert.NotNull(directory);
+        return Path.Combine(new[] { directory }.Concat(pathParts).ToArray());
+    }
+
+    private static string ReadRepositoryFile(params string[] pathParts) =>
+        File.ReadAllText(ReadRepositoryPath(pathParts));
 }

@@ -9,7 +9,7 @@ public sealed class InstallerValidationScriptContractTests
     {
         string script = ReadScript();
 
-        Assert.Contains("TrainingDeskCalendar-Setup-0.1.0-x64.exe", script, StringComparison.Ordinal);
+        Assert.Contains("TrainingDeskCalendar-Setup-0.1.1-x64.exe", script, StringComparison.Ordinal);
         Assert.Contains("/VERYSILENT", script, StringComparison.Ordinal);
         Assert.Contains("/CURRENTUSER", script, StringComparison.Ordinal);
         Assert.Contains("[Guid]::NewGuid()", script, StringComparison.Ordinal);

@@ -133,7 +133,7 @@ public sealed class SettingsViewModelTests
         Assert.Equal("OnRepositoryClick", (string?)hyperlink.Attribute("Click"));
         Assert.Contains(
             hyperlink.Descendants(presentation + "Run"),
-            run => (string?)run.Attribute("Text") == "{Binding RepositoryText}");
+            run => (string?)run.Attribute("Text") == "{Binding RepositoryText, Mode=OneWay}");
     }
 
     [Fact]

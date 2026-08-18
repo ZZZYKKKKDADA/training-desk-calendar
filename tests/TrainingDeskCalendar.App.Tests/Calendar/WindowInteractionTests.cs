@@ -2,6 +2,7 @@ using TrainingDeskCalendar.App.Persistence;
 using TrainingDeskCalendar.App.Windowing;
 using TrainingDeskCalendar.App.Domain;
 using TrainingDeskCalendar.App.Calendar;
+using System.Windows;
 using System.Xml.Linq;
 using Xunit;
 
@@ -41,6 +42,31 @@ public sealed class WindowInteractionTests
         Assert.Equal(
             "OnExplicitShutdown",
             (string?)document.Root?.Attribute("ShutdownMode"));
+    }
+
+    [Fact]
+    public void SettingsWindow_ReadOnlyPropertiesUseOneWayBindings()
+    {
+        XDocument document = XDocument.Load(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "Settings",
+            "SettingsWindow.xaml"));
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+
+        XElement versionText = Assert.Single(
+            document.Descendants(presentation + "TextBlock"),
+            element => ((string?)element.Attribute("Text"))?.Contains("VersionText") == true);
+        XElement repositoryRun = Assert.Single(
+            document.Descendants(presentation + "Run"),
+            element => ((string?)element.Attribute("Text"))?.Contains("RepositoryText") == true);
+        XElement repositoryLink = Assert.Single(
+            document.Descendants(presentation + "Hyperlink"));
+
+        Assert.Equal("{Binding VersionText, Mode=OneWay}", (string?)versionText.Attribute("Text"));
+        Assert.Equal("{Binding RepositoryText, Mode=OneWay}", (string?)repositoryRun.Attribute("Text"));
+        Assert.Equal("{Binding CanOpenRepository, Mode=OneWay}", (string?)repositoryLink.Attribute("IsEnabled"));
     }
 
     [Fact]
@@ -124,6 +150,44 @@ public sealed class WindowInteractionTests
         state.SetLocked(false);
         Assert.True(state.CanMove);
         Assert.True(state.CanResize);
+    }
+
+    [Fact]
+    public void WindowDragService_TracksPointerDeltaUntilDragEnds()
+    {
+        var service = new WindowDragService();
+        service.Begin(new Point(400, 220), new Point(100, 80));
+
+        Assert.True(service.TryGetPosition(new Point(650, 440), out Point position));
+        Assert.Equal(new Point(350, 300), position);
+
+        service.End();
+        Assert.False(service.TryGetPosition(new Point(700, 500), out _));
+    }
+
+    [Fact]
+    public void MainWindow_HeaderUsesManualDragHandlers()
+    {
+        string solutionRoot = FindSolutionRoot();
+        string xamlPath = Path.Combine(
+            solutionRoot,
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml");
+        XDocument document = XDocument.Load(xamlPath);
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+
+        XElement header = Assert.Single(
+            document.Descendants(presentation + "DockPanel"),
+            element => (string?)element.Attribute("MouseLeftButtonDown") ==
+                "OnHeaderMouseLeftButtonDown");
+
+        Assert.Equal("OnHeaderMouseMove", (string?)header.Attribute("MouseMove"));
+        Assert.Equal("OnHeaderMouseLeftButtonUp", (string?)header.Attribute("MouseLeftButtonUp"));
+        Assert.Equal("OnHeaderLostMouseCapture", (string?)header.Attribute("LostMouseCapture"));
+
+        string codeBehind = File.ReadAllText(Path.ChangeExtension(xamlPath, ".xaml.cs"));
+        Assert.DoesNotContain("DragMove();", codeBehind, StringComparison.Ordinal);
     }
 
     [Theory]

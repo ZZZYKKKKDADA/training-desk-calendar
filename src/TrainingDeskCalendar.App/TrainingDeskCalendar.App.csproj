@@ -5,6 +5,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>TrainingDeskCalendar.App</AssemblyName>
     <RootNamespace>TrainingDeskCalendar.App</RootNamespace>
+    <ApplicationIcon>Assets\calendar.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="TrainingDeskCalendar.App.Tests" />

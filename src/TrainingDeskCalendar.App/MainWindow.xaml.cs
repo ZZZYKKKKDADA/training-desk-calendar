@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer settingsSaveTimer;
     private readonly WindowInteractionState interactionState = new();
     private readonly WindowClosePolicy closePolicy = new();
+    private readonly WindowDragService windowDragService = new();
     private readonly WindowStateService windowStateService = new();
     private readonly uint taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
     private WindowPlacementCoordinator? placementCoordinator;
@@ -146,9 +147,60 @@ public partial class MainWindow : Window
 
     private void OnHeaderMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (interactionState.CanMove && e.ButtonState == MouseButtonState.Pressed)
+        if (interactionState.CanMove &&
+            e.ButtonState == MouseButtonState.Pressed &&
+            sender is UIElement header &&
+            header.CaptureMouse())
         {
-            DragMove();
+            windowDragService.Begin(
+                GetPointerPositionInDips(e),
+                new Point(Left, Top));
+            e.Handled = true;
+        }
+    }
+
+    private void OnHeaderMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!interactionState.CanMove || e.LeftButton != MouseButtonState.Pressed)
+        {
+            EndHeaderDrag(sender);
+            return;
+        }
+
+        if (windowDragService.TryGetPosition(
+                GetPointerPositionInDips(e),
+                out Point windowPosition))
+        {
+            Left = windowPosition.X;
+            Top = windowPosition.Y;
+            e.Handled = true;
+        }
+    }
+
+    private void OnHeaderMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        EndHeaderDrag(sender);
+        e.Handled = true;
+    }
+
+    private void OnHeaderLostMouseCapture(object sender, MouseEventArgs e) =>
+        windowDragService.End();
+
+    private Point GetPointerPositionInDips(MouseEventArgs e)
+    {
+        Point screenPosition = PointToScreen(e.GetPosition(this));
+        DpiScale dpi = VisualTreeHelper.GetDpi(this);
+        return new Point(
+            screenPosition.X / dpi.DpiScaleX,
+            screenPosition.Y / dpi.DpiScaleY);
+    }
+
+    private void EndHeaderDrag(object sender)
+    {
+        windowDragService.End();
+        if (sender is UIElement element && element.IsMouseCaptured)
+        {
+            element.ReleaseMouseCapture();
         }
     }
 
