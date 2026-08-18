@@ -1,6 +1,6 @@
 # 发布训练桌历
 
-本文描述从本地分支创建 Windows x64 Release 的维护流程。当前工作树尚未绑定具体 GitHub 仓库；拿到仓库地址并推送后，以下流程由 `.github/workflows/release.yml` 自动执行。
+本文描述为 [ZZZYKKKKDADA/training-desk-calendar](https://github.com/ZZZYKKKKDADA/training-desk-calendar) 创建 Windows x64 Release 的维护流程。推送版本标签后，以下流程由 `.github/workflows/release.yml` 自动执行。
 
 ## 版本与标签
 
@@ -18,7 +18,7 @@ Release 工作流会用 `scripts/validate-release-tag.ps1` 校验标签，标签
 dotnet restore TrainingDeskCalendar.sln --runtime win-x64 --locked-mode
 dotnet test TrainingDeskCalendar.sln --configuration Release --no-restore
 powershell -ExecutionPolicy Bypass -File scripts/package-windows.ps1 `
-  -RepositoryUrl 'https://github.com/OWNER/REPOSITORY'
+  -RepositoryUrl 'https://github.com/ZZZYKKKKDADA/training-desk-calendar'
 & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" /Qp installer\TrainingDeskCalendar.iss
 ```
 
@@ -44,4 +44,4 @@ powershell -ExecutionPolicy Bypass -File scripts/write-checksums.ps1 `
 
 安装器文件名和校验文件名从 `vMAJOR.MINOR.PATCH` 标签动态派生；不需要为每次版本发布手工修改工作流中的文件名。
 
-工作流使用 GitHub 自动提供的 `GITHUB_TOKEN`，不需要把个人账号令牌写入仓库。真实 GitHub Actions 和 Release 必须在维护者提供仓库并完成推送后才能验证。
+工作流使用 GitHub 自动提供的 `GITHUB_TOKEN`，不需要把个人账号令牌写入仓库。`v0.1.0` 的 CI、Release 工作流、安装器和校验文件已经在真实仓库验证，证据见 [github-release-results.md](validation/github-release-results.md)。
