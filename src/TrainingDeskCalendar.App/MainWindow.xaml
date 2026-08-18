@@ -11,7 +11,8 @@
         AllowsTransparency="True"
         Background="Transparent"
         ResizeMode="CanResizeWithGrip"
-        ShowInTaskbar="False">
+        ShowInTaskbar="False"
+        PreviewMouseLeftButtonDown="OnWindowPreviewMouseLeftButtonDown">
   <Window.Resources>
     <calendar:TaskColorBrushConverter x:Key="TaskColorBrushConverter" />
     <calendar:TaskColorSelectionConverter x:Key="TaskColorSelectionConverter" />

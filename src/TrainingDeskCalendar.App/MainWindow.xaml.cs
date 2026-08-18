@@ -131,7 +131,42 @@ public partial class MainWindow : Window
         DesktopAttachResult result = desktopHostService.Attach(windowHandle);
         DesktopStatusText.Text = result.Status == DesktopAttachStatus.Attached
             ? "桌面层：已连接"
-            : $"桌面层：普通窗口 · {result.FailureReason}";
+            : "桌面层：普通窗口（桌面嵌入不可用）";
+    }
+
+    private async void OnWindowPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        DayCardViewModel? editingCard = composition.Calendar.Days
+            .FirstOrDefault(card => card.IsEditing);
+        if (editingCard is null || IsWithinCard(e.OriginalSource as DependencyObject, editingCard))
+        {
+            return;
+        }
+
+        await UiCommandRunner.RunAsync(
+            () => composition.Calendar.SaveEditAsync(editingCard),
+            exception => DesktopStatusText.Text = $"保存失败：{exception.Message}");
+    }
+
+    private static bool IsWithinCard(DependencyObject? source, DayCardViewModel card)
+    {
+        while (source is not null)
+        {
+            if (source is FrameworkElement element &&
+                ReferenceEquals(element.DataContext, card))
+            {
+                return true;
+            }
+
+            source = source switch
+            {
+                Visual visual => VisualTreeHelper.GetParent(visual),
+                FrameworkContentElement content => ContentOperations.GetParent(content),
+                _ => LogicalTreeHelper.GetParent(source)
+            };
+        }
+
+        return false;
     }
 
     private void OnHeaderMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

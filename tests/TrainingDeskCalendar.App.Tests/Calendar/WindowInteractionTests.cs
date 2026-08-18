@@ -203,6 +203,41 @@ public sealed class WindowInteractionTests
         Assert.DoesNotContain("OnDesktopWatchdogTick", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MainWindow_SavesEditingCardWhenClickingOutsideIt()
+    {
+        XDocument document = XDocument.Load(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml"));
+
+        Assert.Equal(
+            "OnWindowPreviewMouseLeftButtonDown",
+            (string?)document.Root?.Attribute("PreviewMouseLeftButtonDown"));
+
+        string source = File.ReadAllText(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml.cs"));
+        Assert.Contains("SaveEditAsync(editingCard)", source, StringComparison.Ordinal);
+        Assert.Contains("IsWithinCard", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MainWindow_UsesLocalizedDesktopFallbackStatus()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            FindSolutionRoot(),
+            "src",
+            "TrainingDeskCalendar.App",
+            "MainWindow.xaml.cs"));
+
+        Assert.Contains("桌面层：普通窗口（桌面嵌入不可用）", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkerW was not found", source, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(0, "#F7F8FA", "#20262B")]
     [InlineData(1, "#20262B", "#F7F8FA")]
